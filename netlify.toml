@@ -1,0 +1,21 @@
+[build]
+  command = "npm run build"
+  publish = "frontend/dist"
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+  included_files = ["backend/prisma/**"]
+
+# API requests route to the serverless backend function
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+
+# Single Page Application (SPA) router fallback for React
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+

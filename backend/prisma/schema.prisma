@@ -1,0 +1,108 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  nome      String
+  email     String   @unique
+  senha     String
+  perfil    String   @default("RECEPCIONISTA") // ADMIN | RECEPCIONISTA
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Cliente {
+  id            Int          @id @default(autoincrement())
+  nome          String
+  cpf           String       @unique
+  rg            String?
+  dataNascimento DateTime?
+  telefone      String?
+  email         String?
+  logradouro    String?
+  numero        String?
+  complemento   String?
+  bairro        String?
+  cidade        String?
+  estado        String?
+  cep           String?
+  observacoes   String?
+  ativo         Boolean      @default(true)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  hospedagens   Hospedagem[]
+}
+
+model Quarto {
+  id          Int          @id @default(autoincrement())
+  numero      String
+  predio      String       @default("CENTRAL") // CENTRAL | ANEXO
+  tipo        String       @default("SOLTEIRO") // SOLTEIRO | CASAL | SUITE | FAMILIA
+  capacidade  Int          @default(1)
+  valorDiaria Float
+  andar       Int          @default(1)
+  status      String       @default("LIVRE") // LIVRE | OCUPADO | LIMPEZA | MANUTENCAO
+  descricao   String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  hospedagens Hospedagem[]
+
+  @@unique([numero, predio])
+}
+
+model Hospedagem {
+  id               Int                   @id @default(autoincrement())
+  clienteId        Int
+  quartoId         Int
+  dataEntrada      DateTime
+  dataSaida        DateTime?
+  previsaoSaida    DateTime
+  numHospedes      Int                   @default(1)
+  status           String                @default("ATIVA") // ATIVA | FINALIZADA | CANCELADA
+  valorTotal       Float?
+  formaPagamento   String?
+  observacoes      String?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  cliente          Cliente               @relation(fields: [clienteId], references: [id])
+  quarto           Quarto                @relation(fields: [quartoId], references: [id])
+  consumosExtras   ConsumoExtra[]
+  lancamento       LancamentoFinanceiro?
+}
+
+model ConsumoExtra {
+  id           Int        @id @default(autoincrement())
+  hospedagemId Int
+  descricao    String
+  categoria    String     @default("OUTRO") // FRIGOBRAR | LAVANDERIA | RESTAURANTE | TELEFONE | OUTRO
+  valor        Float
+  data         DateTime   @default(now())
+  createdAt    DateTime   @default(now())
+  hospedagem   Hospedagem @relation(fields: [hospedagemId], references: [id])
+}
+
+model LancamentoFinanceiro {
+  id             Int        @id @default(autoincrement())
+  tipo           String     // RECEITA | DESPESA
+  categoria      String
+  descricao      String
+  valor          Float
+  data           DateTime
+  formaPagamento String?
+  status         String     @default("PENDENTE") // PENDENTE | PAGO | ATRASADO
+  hospedagemId   Int?       @unique
+  observacoes    String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  hospedagem     Hospedagem? @relation(fields: [hospedagemId], references: [id])
+}

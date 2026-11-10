@@ -1,0 +1,21 @@
+{
+  "name": "Hotel Central 2 e Anexo",
+  "short_name": "Hotel Central",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1e3a8a",
+  "theme_color": "#1e3a8a",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192 256x256 512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "1024x423",
+      "type": "image/png"
+    }
+  ]
+}
+
