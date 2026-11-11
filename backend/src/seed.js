@@ -99,7 +99,7 @@ async function main() {
   console.log('🏨 Criando hospedagens...');
 
   // Helper to get quarto by numero
-  const getQuarto = (numero) => quartos.find(q => q.numero === numero);
+  const getQuarto = (numero, predio = 'CENTRAL') => quartos.find(q => q.numero === numero && q.predio === predio) || quartos.find(q => q.numero === numero);
   const getCliente = (index) => clientes[index];
 
   const hoje = new Date();
@@ -146,12 +146,12 @@ async function main() {
     },
     {
       clienteId: getCliente(8).id,
-      quartoId: getQuarto('404').id,
+      quartoId: getQuarto('304').id,
       dataEntrada: diasAtras(1),
       previsaoSaida: diasFrente(6),
-      numHospedes: 5,
+      numHospedes: 3,
       status: 'ATIVA',
-      observacoes: 'Cobertura para família grande',
+      observacoes: 'Suíte presidencial para família',
     },
   ];
 
