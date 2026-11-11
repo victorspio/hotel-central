@@ -16,6 +16,9 @@
     "db:clean": "npm --prefix backend run db:clean",
     "db:studio": "npm --prefix backend run db:studio"
   },
+  "dependencies": {
+    "serverless-http": "^4.0.0"
+  },
   "devDependencies": {
     "concurrently": "^10.0.7"
   }
