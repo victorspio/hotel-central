@@ -17,13 +17,11 @@
     "react-hot-toast": "^2.4.1",
     "lucide-react": "^0.303.0",
     "jspdf": "^2.5.1",
-    "jspdf-autotable": "^3.8.1"
-  },
-  "devDependencies": {
+    "jspdf-autotable": "^3.8.1",
+    "vite": "^5.0.8",
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.16",
     "postcss": "^8.4.32",
-    "tailwindcss": "^3.4.0",
-    "vite": "^5.0.8"
+    "tailwindcss": "^3.4.0"
   }
 }
