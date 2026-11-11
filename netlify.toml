@@ -5,7 +5,7 @@
 
 [functions]
   node_bundler = "esbuild"
-  included_files = ["backend/prisma/**"]
+  included_files = ["backend/prisma/**", "node_modules/.prisma/**", "backend/node_modules/.prisma/**"]
 
 # API requests route to the serverless backend function
 [[redirects]]
