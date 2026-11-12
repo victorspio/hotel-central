@@ -15,6 +15,14 @@ if (process.env.DATABASE_URL) {
   if (dbUrl.includes(':[') && dbUrl.includes(']@')) {
     dbUrl = dbUrl.replace(/:\[(.*?)\]@/, (match, p1) => `:${encodeURIComponent(p1)}@`);
   }
+  // Automatically switch Supabase pooler from session mode (5432 - max 15 clients) to transaction mode (6543 - unlimited pool)
+  if (dbUrl.includes('.pooler.supabase.com:5432')) {
+    dbUrl = dbUrl.replace('.pooler.supabase.com:5432', '.pooler.supabase.com:6543');
+  }
+  if (dbUrl.includes(':6543') && !dbUrl.includes('pgbouncer=true')) {
+    const separator = dbUrl.includes('?') ? '&' : '?';
+    dbUrl = `${dbUrl}${separator}pgbouncer=true&connection_limit=1`;
+  }
   process.env.DATABASE_URL = dbUrl;
 }
 
@@ -84,12 +92,10 @@ app.get(['/health', '/api/health'], async (req, res) => {
   };
 
   try {
-    const { PrismaClient } = require('@prisma/client');
-    const prisma = new PrismaClient();
+    const prisma = require('./lib/prisma');
     const userCount = await prisma.user.count();
     diagnostics.database = 'connected';
     diagnostics.totalUsers = userCount;
-    await prisma.$disconnect();
     return res.json(diagnostics);
   } catch (err) {
     diagnostics.database = 'error';
