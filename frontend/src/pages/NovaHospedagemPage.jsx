@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, Search, User, BedDouble, Calendar, ChevronRight, Check } from 'lucide-react'
 import { clientes as clientesApi, quartos as quartosApi, hospedagens as hospedagensApi } from '../services/api'
+import { tarifasService } from '../services/tarifas'
 import { formatCurrency, formatDate, formatCPF, formatPhone } from '../utils/formatters'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
@@ -17,7 +18,26 @@ const STEPS = [
   { num: 3, label: 'Detalhes', icon: Calendar }
 ]
 
-const tipoLabel = { SOLTEIRO: 'Solteiro', CASAL: 'Casal', SUITE: 'Suíte', FAMILIA: 'Família' }
+const tipoLabel = {
+  SIMPLES: 'Simples',
+  COMPLETO: 'Completo',
+  SOLTEIRO: 'Simples',
+  CASAL: 'Completo'
+}
+
+function getQuartoTipoDisplay(quarto) {
+  if (!quarto) return ''
+  if (quarto.tipo === 'COMPLETO') return 'Completo'
+  if (quarto.tipo === 'SIMPLES' && quarto.temArCondicionado) return 'Simples (Com Ar)'
+  return 'Simples (Sem Ar)'
+}
+
+function getTipoTarifa(quarto) {
+  if (!quarto) return 'SIMPLES_SEM_AR'
+  if (quarto.tipo === 'COMPLETO') return 'COMPLETO'
+  if (quarto.tipo === 'SIMPLES' && quarto.temArCondicionado) return 'SIMPLES_COM_AR'
+  return 'SIMPLES_SEM_AR'
+}
 
 function StepIndicator({ current }) {
   return (
@@ -54,6 +74,7 @@ export default function NovaHospedagemPage() {
   const [step, setStep] = useState(1)
   const [selectedCliente, setSelectedCliente] = useState(null)
   const [selectedQuarto, setSelectedQuarto] = useState(null)
+  const [tarifas, setTarifas] = useState([])
   const [form, setForm] = useState({
     dataEntrada: format(new Date(), 'yyyy-MM-dd'),
     previsaoSaida: '',
@@ -61,6 +82,12 @@ export default function NovaHospedagemPage() {
     observacoes: ''
   })
   const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    tarifasService.listar()
+      .then((res) => setTarifas(res.data?.data || res.data || []))
+      .catch(() => {})
+  }, [])
 
   // Step 1 — client search
   const [clienteSearch, setClienteSearch] = useState('')
@@ -122,7 +149,11 @@ export default function NovaHospedagemPage() {
     return d > 0 ? d : 0
   })()
 
-  const estimatedTotal = selectedQuarto ? estimatedDias * selectedQuarto.valorDiaria : 0
+  const tipoTarifaKey = getTipoTarifa(selectedQuarto)
+  const tarifaQuarto = tarifas.find((t) => t.tipo === tipoTarifaKey)
+  const valorPorPessoa = tarifaQuarto ? tarifaQuarto.valorPorPessoa : (selectedQuarto?.valorDiaria || 0)
+  const numHospedes = parseInt(form.numHospedes) || 1
+  const estimatedTotal = selectedQuarto ? estimatedDias * valorPorPessoa * numHospedes : 0
 
   const handleSubmit = async () => {
     if (!selectedCliente) return toast.error('Selecione um cliente.')
@@ -303,9 +334,8 @@ export default function NovaHospedagemPage() {
                         {r.predio === 'ANEXO' ? 'Anexo' : 'Central'}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-600 mt-1">{tipoLabel[r.tipo] || r.tipo}</p>
+                    <p className="text-xs font-medium text-gray-700 mt-1">{getQuartoTipoDisplay(r)}</p>
                     <p className="text-xs text-gray-500">{r.andar}º andar · {r.capacidade} pess.</p>
-                    <p className="text-xs font-semibold text-primary-700 mt-1">{formatCurrency(r.valorDiaria)}/dia</p>
                   </button>
                 ))}
               </div>
@@ -369,19 +399,26 @@ export default function NovaHospedagemPage() {
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Quarto</span>
                   <span className="font-medium">
-                    Quarto {selectedQuarto.numero} · {tipoLabel[selectedQuarto.tipo] || selectedQuarto.tipo} ({selectedQuarto.predio === 'ANEXO' ? 'Prédio Anexo' : 'Prédio Central'})
+                    Quarto {selectedQuarto.numero} · {getQuartoTipoDisplay(selectedQuarto)} ({selectedQuarto.predio === 'ANEXO' ? 'Prédio Anexo' : 'Prédio Central'})
                   </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Tarifa por pessoa</span>
+                  <span className="font-medium">{formatCurrency(valorPorPessoa)} / pessoa / noite</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Hóspedes</span>
+                  <span className="font-medium">{numHospedes} pessoa(s)</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Período</span>
                   <span className="font-medium">{estimatedDias} diária(s)</span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Diária</span>
-                  <span className="font-medium">{formatCurrency(selectedQuarto.valorDiaria)}</span>
-                </div>
-                <div className="border-t border-gray-200 pt-2 flex justify-between">
-                  <span className="font-semibold text-gray-800">Total estimado</span>
+                <div className="border-t border-gray-200 pt-2 flex justify-between items-baseline">
+                  <div>
+                    <span className="font-semibold text-gray-800 block">Total estimado</span>
+                    <span className="text-[11px] text-gray-400">({estimatedDias} diárias × {numHospedes} hóspedes × {formatCurrency(valorPorPessoa)})</span>
+                  </div>
                   <span className="font-bold text-primary-700 text-lg">{formatCurrency(estimatedTotal)}</span>
                 </div>
               </div>

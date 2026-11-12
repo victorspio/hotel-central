@@ -2,7 +2,7 @@ const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
 
-const TIPOS_VALIDOS = ['SOLTEIRO', 'CASAL', 'SUITE', 'FAMILIA'];
+const TIPOS_VALIDOS = ['SIMPLES', 'COMPLETO'];
 const STATUS_VALIDOS = ['LIVRE', 'OCUPADO', 'LIMPEZA', 'MANUTENCAO'];
 
 const listar = async (req, res, next) => {
@@ -86,10 +86,10 @@ const buscar = async (req, res, next) => {
 
 const criar = async (req, res, next) => {
   try {
-    const { numero, predio, tipo, capacidade, valorDiaria, andar, descricao } = req.body;
+    const { numero, predio, tipo, temArCondicionado, capacidade, valorDiaria, andar, descricao } = req.body;
 
-    if (!numero || !valorDiaria) {
-      return res.status(400).json({ error: 'Número e valor da diária são obrigatórios' });
+    if (!numero) {
+      return res.status(400).json({ error: 'Número do quarto é obrigatório' });
     }
 
     if (tipo && !TIPOS_VALIDOS.includes(tipo)) {
@@ -111,9 +111,10 @@ const criar = async (req, res, next) => {
       data: {
         numero: String(numero),
         predio: predioNormalizado,
-        tipo: tipo || 'SOLTEIRO',
+        tipo: tipo || 'SIMPLES',
+        temArCondicionado: temArCondicionado !== undefined ? Boolean(temArCondicionado) : false,
         capacidade: Number(capacidade) || 1,
-        valorDiaria: Number(valorDiaria),
+        valorDiaria: valorDiaria !== undefined ? Number(valorDiaria) : 0,
         andar: Number(andar) || 1,
         descricao,
         status: 'LIVRE',
@@ -129,7 +130,7 @@ const criar = async (req, res, next) => {
 const atualizar = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { numero, predio, tipo, capacidade, valorDiaria, andar, status, descricao } = req.body;
+    const { numero, predio, tipo, temArCondicionado, capacidade, valorDiaria, andar, status, descricao } = req.body;
 
     const quarto = await prisma.quarto.findUnique({ where: { id: Number(id) } });
     if (!quarto) {
@@ -168,6 +169,7 @@ const atualizar = async (req, res, next) => {
         numero: numero ? String(numero) : undefined,
         predio: predioDestino,
         tipo,
+        temArCondicionado: temArCondicionado !== undefined ? Boolean(temArCondicionado) : undefined,
         capacidade: capacidade !== undefined ? Number(capacidade) : undefined,
         valorDiaria: valorDiaria !== undefined ? Number(valorDiaria) : undefined,
         andar: andar !== undefined ? Number(andar) : undefined,

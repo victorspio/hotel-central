@@ -15,7 +15,19 @@ async function main() {
   await prisma.quarto.deleteMany();
   await prisma.cliente.deleteMany();
   await prisma.user.deleteMany();
+  await prisma.tarifaQuarto.deleteMany();
   console.log('   Tabelas limpas.\n');
+
+  // ─── TARIFAS ──────────────────────────────────────────────────────────────
+  console.log('💰 Criando tarifas...');
+  await prisma.tarifaQuarto.createMany({
+    data: [
+      { tipo: 'SIMPLES_SEM_AR', nome: 'Simples - Sem Ar Condicionado', valorPorPessoa: 60, descricao: 'Quarto simples sem ar condicionado' },
+      { tipo: 'SIMPLES_COM_AR', nome: 'Simples - Com Ar Condicionado', valorPorPessoa: 80, descricao: 'Quarto simples com ar condicionado' },
+      { tipo: 'COMPLETO', nome: 'Completo', valorPorPessoa: 120, descricao: 'Quarto completo com todos os recursos' },
+    ],
+  });
+  console.log('   ✅ Tarifas criadas\n');
 
   // ─── USUÁRIOS ─────────────────────────────────────────────────────────────
   console.log('👤 Criando usuários...');
@@ -35,35 +47,35 @@ async function main() {
   console.log('🛏️  Criando quartos...');
   const quartosData = [
     // Prédio Central - Andar 1
-    { numero: '101', predio: 'CENTRAL', tipo: 'SOLTEIRO', capacidade: 1, valorDiaria: 150, andar: 1, status: 'LIVRE', descricao: 'Quarto solteiro padrão com ar-condicionado e frigobar' },
-    { numero: '102', predio: 'CENTRAL', tipo: 'SOLTEIRO', capacidade: 1, valorDiaria: 150, andar: 1, status: 'LIMPEZA', descricao: 'Quarto solteiro padrão com vista para o jardim' },
-    { numero: '103', predio: 'CENTRAL', tipo: 'CASAL', capacidade: 2, valorDiaria: 220, andar: 1, status: 'OCUPADO', descricao: 'Quarto casal com cama queen size e banheira' },
-    { numero: '104', predio: 'CENTRAL', tipo: 'CASAL', capacidade: 2, valorDiaria: 220, andar: 1, status: 'LIVRE', descricao: 'Quarto casal padrão com TV 42"' },
+    { numero: '101', predio: 'CENTRAL', tipo: 'SIMPLES', temArCondicionado: false, capacidade: 1, valorDiaria: 0, andar: 1, status: 'LIVRE', descricao: 'Quarto simples sem ar-condicionado' },
+    { numero: '102', predio: 'CENTRAL', tipo: 'SIMPLES', temArCondicionado: false, capacidade: 1, valorDiaria: 0, andar: 1, status: 'LIMPEZA', descricao: 'Quarto simples sem ar-condicionado com vista para o jardim' },
+    { numero: '103', predio: 'CENTRAL', tipo: 'SIMPLES', temArCondicionado: true,  capacidade: 2, valorDiaria: 0, andar: 1, status: 'OCUPADO', descricao: 'Quarto simples com ar-condicionado e frigobar' },
+    { numero: '104', predio: 'CENTRAL', tipo: 'SIMPLES', temArCondicionado: true,  capacidade: 2, valorDiaria: 0, andar: 1, status: 'LIVRE', descricao: 'Quarto simples com ar-condicionado e TV 42"' },
     // Prédio Central - Andar 2
-    { numero: '201', predio: 'CENTRAL', tipo: 'SOLTEIRO', capacidade: 1, valorDiaria: 160, andar: 2, status: 'OCUPADO', descricao: 'Quarto solteiro superior com varanda' },
-    { numero: '202', predio: 'CENTRAL', tipo: 'CASAL', capacidade: 2, valorDiaria: 240, andar: 2, status: 'LIVRE', descricao: 'Quarto casal superior com vista para a piscina' },
-    { numero: '203', predio: 'CENTRAL', tipo: 'SUITE', capacidade: 2, valorDiaria: 380, andar: 2, status: 'OCUPADO', descricao: 'Suíte luxo com sala de estar e jacuzzi' },
-    { numero: '204', predio: 'CENTRAL', tipo: 'SUITE', capacidade: 2, valorDiaria: 380, andar: 2, status: 'LIVRE', descricao: 'Suíte premium com vista panorâmica' },
+    { numero: '201', predio: 'CENTRAL', tipo: 'SIMPLES', temArCondicionado: true,  capacidade: 1, valorDiaria: 0, andar: 2, status: 'OCUPADO', descricao: 'Quarto simples com ar-condicionado e varanda' },
+    { numero: '202', predio: 'CENTRAL', tipo: 'SIMPLES', temArCondicionado: true,  capacidade: 2, valorDiaria: 0, andar: 2, status: 'LIVRE', descricao: 'Quarto simples com ar-condicionado vista para a piscina' },
+    { numero: '203', predio: 'CENTRAL', tipo: 'COMPLETO', temArCondicionado: true, capacidade: 2, valorDiaria: 0, andar: 2, status: 'OCUPADO', descricao: 'Quarto completo com sala de estar e jacuzzi' },
+    { numero: '204', predio: 'CENTRAL', tipo: 'COMPLETO', temArCondicionado: true, capacidade: 2, valorDiaria: 0, andar: 2, status: 'LIVRE', descricao: 'Quarto completo premium com vista panorâmica' },
     // Prédio Central - Andar 3
-    { numero: '301', predio: 'CENTRAL', tipo: 'FAMILIA', capacidade: 4, valorDiaria: 320, andar: 3, status: 'LIVRE', descricao: 'Quarto família com 2 camas de casal' },
-    { numero: '302', predio: 'CENTRAL', tipo: 'FAMILIA', capacidade: 4, valorDiaria: 320, andar: 3, status: 'OCUPADO', descricao: 'Quarto família espaçoso com área de lazer' },
-    { numero: '303', predio: 'CENTRAL', tipo: 'CASAL', capacidade: 2, valorDiaria: 230, andar: 3, status: 'MANUTENCAO', descricao: 'Quarto casal - Em manutenção (ar-condicionado)' },
-    { numero: '304', predio: 'CENTRAL', tipo: 'SUITE', capacidade: 3, valorDiaria: 420, andar: 3, status: 'LIVRE', descricao: 'Suíte presidencial com vista 360°' },
+    { numero: '301', predio: 'CENTRAL', tipo: 'COMPLETO', temArCondicionado: true, capacidade: 4, valorDiaria: 0, andar: 3, status: 'LIVRE', descricao: 'Quarto completo família com 2 camas de casal' },
+    { numero: '302', predio: 'CENTRAL', tipo: 'COMPLETO', temArCondicionado: true, capacidade: 4, valorDiaria: 0, andar: 3, status: 'OCUPADO', descricao: 'Quarto completo família espaçoso com área de lazer' },
+    { numero: '303', predio: 'CENTRAL', tipo: 'SIMPLES', temArCondicionado: true,  capacidade: 2, valorDiaria: 0, andar: 3, status: 'MANUTENCAO', descricao: 'Quarto simples - Em manutenção (ar-condicionado)' },
+    { numero: '304', predio: 'CENTRAL', tipo: 'COMPLETO', temArCondicionado: true, capacidade: 3, valorDiaria: 0, andar: 3, status: 'LIVRE', descricao: 'Quarto completo presidencial com vista 360°' },
     // Prédio Anexo - Andar 1
-    { numero: '101', predio: 'ANEXO', tipo: 'SOLTEIRO', capacidade: 1, valorDiaria: 130, andar: 1, status: 'LIVRE', descricao: 'Quarto solteiro Anexo' },
-    { numero: '102', predio: 'ANEXO', tipo: 'CASAL', capacidade: 2, valorDiaria: 190, andar: 1, status: 'LIVRE', descricao: 'Quarto casal Anexo aconchegante' },
-    { numero: '103', predio: 'ANEXO', tipo: 'CASAL', capacidade: 2, valorDiaria: 190, andar: 1, status: 'LIVRE', descricao: 'Quarto casal Anexo' },
+    { numero: '101', predio: 'ANEXO', tipo: 'SIMPLES', temArCondicionado: false, capacidade: 1, valorDiaria: 0, andar: 1, status: 'LIVRE', descricao: 'Quarto simples Anexo sem ar-condicionado' },
+    { numero: '102', predio: 'ANEXO', tipo: 'SIMPLES', temArCondicionado: false, capacidade: 2, valorDiaria: 0, andar: 1, status: 'LIVRE', descricao: 'Quarto simples Anexo aconchegante' },
+    { numero: '103', predio: 'ANEXO', tipo: 'SIMPLES', temArCondicionado: true,  capacidade: 2, valorDiaria: 0, andar: 1, status: 'LIVRE', descricao: 'Quarto simples Anexo com ar-condicionado' },
     // Prédio Anexo - Andar 2
-    { numero: '201', predio: 'ANEXO', tipo: 'CASAL', capacidade: 2, valorDiaria: 200, andar: 2, status: 'LIVRE', descricao: 'Quarto casal Anexo superior' },
-    { numero: '202', predio: 'ANEXO', tipo: 'SUITE', capacidade: 2, valorDiaria: 280, andar: 2, status: 'LIVRE', descricao: 'Suíte Anexo com varanda' },
-    { numero: '203', predio: 'ANEXO', tipo: 'FAMILIA', capacidade: 4, valorDiaria: 300, andar: 2, status: 'LIVRE', descricao: 'Quarto família Anexo' },
+    { numero: '201', predio: 'ANEXO', tipo: 'SIMPLES', temArCondicionado: true,  capacidade: 2, valorDiaria: 0, andar: 2, status: 'LIVRE', descricao: 'Quarto simples Anexo superior com ar-condicionado' },
+    { numero: '202', predio: 'ANEXO', tipo: 'COMPLETO', temArCondicionado: true, capacidade: 2, valorDiaria: 0, andar: 2, status: 'LIVRE', descricao: 'Quarto completo Anexo com varanda' },
+    { numero: '203', predio: 'ANEXO', tipo: 'COMPLETO', temArCondicionado: true, capacidade: 4, valorDiaria: 0, andar: 2, status: 'LIVRE', descricao: 'Quarto completo família Anexo' },
   ];
 
   const quartos = [];
   for (const q of quartosData) {
     const quarto = await prisma.quarto.create({ data: q });
     quartos.push(quarto);
-    console.log(`   ✅ Quarto ${quarto.numero} - ${quarto.tipo} - R$${quarto.valorDiaria}/dia - ${quarto.status}`);
+    console.log(`   ✅ Quarto ${quarto.numero} (${quarto.predio}) - ${quarto.tipo}${quarto.temArCondicionado ? ' c/ Ar' : ''} - ${quarto.status}`);
   }
   console.log();
 
@@ -296,6 +308,7 @@ async function main() {
   console.log('✅ Seed concluído com sucesso!\n');
   console.log('📊 Resumo:');
   console.log(`   - Usuários: 2`);
+  console.log(`   - Tarifas: 3 (SIMPLES_SEM_AR, SIMPLES_COM_AR, COMPLETO)`);
   console.log(`   - Quartos: ${quartos.length}`);
   console.log(`   - Clientes: ${clientes.length}`);
   console.log(`   - Hospedagens: ${hospedagens.length} (${hospedagensAtivas.length} ativas, ${hospedagensFinalizadas.length} finalizadas)`);

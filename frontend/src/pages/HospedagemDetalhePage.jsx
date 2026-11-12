@@ -70,11 +70,15 @@ export default function HospedagemDetalhePage() {
 
   useEffect(() => { fetchHosp() }, [fetchHosp])
 
-  const consumos = hosp?.consumos || []
-  const dias = calcDias(hosp?.dataEntrada, hosp?.dataSaida || hosp?.previsaoSaida)
-  const totalDiarias = (hosp?.quarto?.valorDiaria || 0) * dias
-  const totalConsumos = consumos.reduce((s, c) => s + (c.valor || 0), 0)
-  const totalGeral = totalDiarias + totalConsumos
+  const consumos = hosp?.consumosExtras || hosp?.consumos || []
+  const dias = hosp?._diasProvisorio || calcDias(hosp?.dataEntrada, hosp?.dataSaida || hosp?.previsaoSaida)
+  const numHospedes = hosp?.numHospedes || 1
+  const valorPorPessoa = hosp?._valorPorPessoa || (hosp?.quarto?.valorDiaria ? hosp.quarto.valorDiaria / numHospedes : 0)
+  const totalDiarias = hosp?._totalProvisorio != null
+    ? (hosp._totalProvisorio - (hosp.totalConsumos || 0))
+    : (dias * valorPorPessoa * numHospedes)
+  const totalConsumos = hosp?.totalConsumos != null ? hosp.totalConsumos : consumos.reduce((s, c) => s + (c.valor || 0), 0)
+  const totalGeral = hosp?.valorTotal != null ? hosp.valorTotal : (totalDiarias + totalConsumos)
 
   const handleAddConsumo = async () => {
     if (!consumoForm.descricao) return toast.error('Descrição é obrigatória.')
@@ -173,7 +177,11 @@ export default function HospedagemDetalhePage() {
         <InfoCard label="Prev. Saída" value={formatDate(hosp.previsaoSaida)} />
         {hosp.dataSaida && <InfoCard label="Saída real" value={formatDate(hosp.dataSaida)} />}
         <InfoCard label="Hóspedes" value={hosp.numHospedes} />
-        <InfoCard label="Diárias" value={`${dias} dia(s)`} sub={`${formatCurrency(hosp.quarto?.valorDiaria)}/dia`} />
+        <InfoCard
+          label="Diárias"
+          value={`${dias} dia(s)`}
+          sub={valorPorPessoa ? `${formatCurrency(valorPorPessoa)}/pessoa/dia` : undefined}
+        />
         <InfoCard label="Total diárias" value={formatCurrency(totalDiarias)} />
         <InfoCard label="Total consumos" value={formatCurrency(totalConsumos)} />
         <InfoCard label="Total geral" value={formatCurrency(totalGeral)} />
@@ -308,7 +316,9 @@ export default function HospedagemDetalhePage() {
           {/* Breakdown */}
           <div className="bg-gray-50 rounded-xl p-4 space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-gray-600">{dias} diária(s) × {formatCurrency(hosp.quarto?.valorDiaria)}</span>
+              <span className="text-gray-600">
+                {dias} diária(s) × {numHospedes} hósp. {valorPorPessoa ? `× ${formatCurrency(valorPorPessoa)}` : ''}
+              </span>
               <span className="font-medium">{formatCurrency(totalDiarias)}</span>
             </div>
             {consumos.map((c) => (

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { Plus, Pencil, Trash2, AlertTriangle } from 'lucide-react'
 import { quartos as quartosApi } from '../services/api'
-import { formatCurrency, getStatusLabel, getStatusColor } from '../utils/formatters'
+import { getStatusLabel, getStatusColor } from '../utils/formatters'
 import { useAuth } from '../contexts/AuthContext'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
@@ -17,10 +17,8 @@ const predioOptions = [
 ]
 
 const tipoOptions = [
-  { value: 'SOLTEIRO', label: 'Solteiro' },
-  { value: 'CASAL', label: 'Casal' },
-  { value: 'SUITE', label: 'Suíte' },
-  { value: 'FAMILIA', label: 'Família' }
+  { value: 'SIMPLES', label: 'Simples' },
+  { value: 'COMPLETO', label: 'Completo' }
 ]
 
 const statusOptions = [
@@ -37,9 +35,15 @@ const statusColorMap = {
   MANUTENCAO: 'gray'
 }
 
+function getTipoDisplay(quarto) {
+  if (quarto.tipo === 'COMPLETO') return 'Completo'
+  if (quarto.tipo === 'SIMPLES' && quarto.temArCondicionado) return 'Simples - Com Ar'
+  return 'Simples - Sem Ar'
+}
+
 const emptyForm = {
-  numero: '', predio: 'CENTRAL', tipo: 'SOLTEIRO', capacidade: '2', valorDiaria: '', andar: '1',
-  status: 'LIVRE', descricao: ''
+  numero: '', predio: 'CENTRAL', tipo: 'SIMPLES', capacidade: '2', andar: '1',
+  status: 'LIVRE', descricao: '', temArCondicionado: false
 }
 
 export default function QuartosPage() {
@@ -93,28 +97,39 @@ export default function QuartosPage() {
     setForm({
       numero: q.numero || '',
       predio: q.predio || 'CENTRAL',
-      tipo: q.tipo || 'SOLTEIRO',
+      tipo: q.tipo || 'SIMPLES',
       capacidade: String(q.capacidade || 2),
-      valorDiaria: String(q.valorDiaria || ''),
       andar: String(q.andar || 1),
       status: q.status || 'LIVRE',
-      descricao: q.descricao || ''
+      descricao: q.descricao || '',
+      temArCondicionado: q.temArCondicionado || false
     })
     setModalOpen(true)
   }
 
-  const onChange = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }))
+  const onChange = (field) => (e) => {
+    const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value
+    setForm((f) => ({
+      ...f,
+      [field]: value,
+      // Reset AC flag when switching to COMPLETO
+      ...(field === 'tipo' && value === 'COMPLETO' ? { temArCondicionado: false } : {})
+    }))
+  }
 
   const handleSave = async () => {
     if (!form.numero) return toast.error('Número do quarto é obrigatório.')
-    if (!form.valorDiaria) return toast.error('Valor da diária é obrigatório.')
     setSaving(true)
     try {
       const payload = {
-        ...form,
+        numero: form.numero,
+        predio: form.predio || 'CENTRAL',
+        tipo: form.tipo,
         capacidade: parseInt(form.capacidade),
-        valorDiaria: parseFloat(form.valorDiaria),
-        andar: parseInt(form.andar)
+        andar: parseInt(form.andar),
+        status: form.status,
+        descricao: form.descricao,
+        temArCondicionado: form.tipo === 'SIMPLES' ? Boolean(form.temArCondicionado) : false
       }
       if (editItem) {
         await quartosApi.update(editItem.id, payload)
@@ -144,9 +159,7 @@ export default function QuartosPage() {
     }
   }
 
-  const floors = [...new Set(list.map((r) => r.andar))]
-    .filter((v) => v !== undefined && v !== null)
-    .sort((a, b) => a - b)
+  const floors = [...new Set(list.map((r) => r.andar))].sort()
 
   const columns = [
     { key: 'numero', label: 'Número', render: (v) => <span className="font-bold text-gray-800">{v}</span> },
@@ -159,10 +172,9 @@ export default function QuartosPage() {
         </Badge>
       )
     },
-    { key: 'tipo', label: 'Tipo' },
+    { key: 'tipo', label: 'Tipo', render: (_, row) => getTipoDisplay(row) },
     { key: 'andar', label: 'Andar', render: (v) => `${v}º` },
     { key: 'capacidade', label: 'Capacidade', render: (v) => `${v} pess.` },
-    { key: 'valorDiaria', label: 'Diária', render: (v) => <span className="font-semibold">{formatCurrency(v)}</span> },
     { key: 'status', label: 'Status', render: (v) => (
       <Badge color={statusColorMap[v] || 'gray'}>{getStatusLabel(v)}</Badge>
     )},
@@ -192,8 +204,7 @@ export default function QuartosPage() {
         <Select
           options={[
             { value: '', label: 'Todos os prédios' },
-            { value: 'CENTRAL', label: 'Prédio Central' },
-            { value: 'ANEXO', label: 'Prédio Anexo' }
+            ...predioOptions
           ]}
           value={filters.predio}
           onChange={(e) => setFilters((f) => ({ ...f, predio: e.target.value }))}
@@ -248,15 +259,34 @@ export default function QuartosPage() {
           <Input label="Número" required value={form.numero} onChange={onChange('numero')} placeholder="Ex: 101" />
           <Select label="Prédio" options={predioOptions} value={form.predio} onChange={onChange('predio')} />
           <Select label="Tipo" options={tipoOptions} value={form.tipo} onChange={onChange('tipo')} />
+
+          {/* Conditional AC field */}
+          {form.tipo === 'SIMPLES' && (
+            <div className="col-span-2">
+              <label className="form-label block mb-2">Ar Condicionado</label>
+              <select
+                name="temArCondicionado"
+                className="form-input"
+                value={form.temArCondicionado ? 'true' : 'false'}
+                onChange={(e) => setForm((f) => ({ ...f, temArCondicionado: e.target.value === 'true' }))}
+              >
+                <option value="false">Sem Ar Condicionado</option>
+                <option value="true">Com Ar Condicionado</option>
+              </select>
+            </div>
+          )}
+
           <Input label="Capacidade (pessoas)" type="number" min="1" value={form.capacidade} onChange={onChange('capacidade')} />
-          <Input label="Valor da Diária (R$)" type="number" min="0" step="0.01" value={form.valorDiaria} onChange={onChange('valorDiaria')} placeholder="0,00" />
           <Input label="Andar" type="number" min="1" value={form.andar} onChange={onChange('andar')} />
-          <div className="col-span-2">
-            <Select label="Status" options={statusOptions} value={form.status} onChange={onChange('status')} />
-          </div>
+          <Select label="Status" options={statusOptions} value={form.status} onChange={onChange('status')} />
           <div className="col-span-2">
             <Input label="Descrição" value={form.descricao} onChange={onChange('descricao')} placeholder="Descrição do quarto..." />
           </div>
+        </div>
+
+        {/* Info about tariffs */}
+        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-700">
+          O valor da diária é definido pela tabela de tarifas (por pessoa) em <strong>Configurações</strong>, não por quarto individualmente.
         </div>
       </Modal>
 

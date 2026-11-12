@@ -14,6 +14,7 @@ import NovaHospedagemPage from './pages/NovaHospedagemPage'
 import HospedagemDetalhePage from './pages/HospedagemDetalhePage'
 import FinanceiroPage from './pages/FinanceiroPage'
 import RelatoriosPage from './pages/RelatoriosPage'
+import ConfiguracoesTarifasPage from './pages/ConfiguracoesTarifasPage'
 
 function ProtectedRoute({ children, adminOnly = false }) {
   const { user, loading } = useAuth()
@@ -75,6 +76,14 @@ function AppRoutes() {
           }
         />
         <Route path="relatorios" element={<RelatoriosPage />} />
+        <Route
+          path="configuracoes"
+          element={
+            <ProtectedRoute adminOnly>
+              <ConfiguracoesTarifasPage />
+            </ProtectedRoute>
+          }
+        />
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>

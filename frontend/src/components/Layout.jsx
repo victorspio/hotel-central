@@ -14,7 +14,8 @@ import {
   X,
   ChevronRight,
   KeyRound,
-  ShieldCheck
+  ShieldCheck,
+  Settings
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { auth as authApi } from '../services/api'
@@ -30,7 +31,8 @@ const navItems = [
   { to: '/clientes', label: 'Clientes', icon: Users },
   { to: '/quartos', label: 'Quartos', icon: Building },
   { to: '/relatorios', label: 'Relatórios', icon: FileBarChart },
-  { to: '/financeiro', label: 'Financeiro', icon: DollarSign, adminOnly: true }
+  { to: '/financeiro', label: 'Financeiro', icon: DollarSign, adminOnly: true },
+  { to: '/configuracoes', label: 'Configurações', icon: Settings, adminOnly: true }
 ]
 
 function NavItem({ item, isAdmin, onClick }) {

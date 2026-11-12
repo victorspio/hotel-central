@@ -24,6 +24,7 @@ const hospedagemRoutes = require('./routes/hospedagens');
 const financeiroRoutes = require('./routes/financeiro');
 const dashboardRoutes = require('./routes/dashboard');
 const relatorioRoutes = require('./routes/relatorios');
+const tarifaRoutes = require('./routes/tarifas');
 
 const app = express();
 
@@ -55,6 +56,7 @@ app.use('/api/hospedagens', hospedagemRoutes);
 app.use('/api/financeiro', financeiroRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/relatorios', relatorioRoutes);
+app.use('/api/tarifas', tarifaRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

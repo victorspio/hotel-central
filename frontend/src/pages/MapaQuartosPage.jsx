@@ -18,10 +18,8 @@ const statusColors = {
 
 const tipoOptions = [
   { value: '', label: 'Todos os tipos' },
-  { value: 'SOLTEIRO', label: 'Solteiro' },
-  { value: 'CASAL', label: 'Casal' },
-  { value: 'SUITE', label: 'Suíte' },
-  { value: 'FAMILIA', label: 'Família' }
+  { value: 'SIMPLES', label: 'Simples' },
+  { value: 'COMPLETO', label: 'Completo' }
 ]
 
 const statusOptions = [

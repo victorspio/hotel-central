@@ -2,6 +2,15 @@ const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
 
+/**
+ * Determines the tariff type based on quarto properties.
+ */
+function getTipoTarifa(quarto) {
+  if (quarto.tipo === 'COMPLETO') return 'COMPLETO';
+  if (quarto.tipo === 'SIMPLES' && quarto.temArCondicionado) return 'SIMPLES_COM_AR';
+  return 'SIMPLES_SEM_AR';
+}
+
 const listar = async (req, res, next) => {
   try {
     const { status, clienteId, quartoId, dataInicio, dataFim, page = 1, limit = 20 } = req.query;
@@ -25,7 +34,7 @@ const listar = async (req, res, next) => {
         orderBy: { createdAt: 'desc' },
         include: {
           cliente: { select: { id: true, nome: true, cpf: true, telefone: true } },
-          quarto: { select: { id: true, numero: true, predio: true, tipo: true, valorDiaria: true } },
+          quarto: { select: { id: true, numero: true, predio: true, tipo: true, temArCondicionado: true, valorDiaria: true } },
           _count: { select: { consumosExtras: true } },
         },
       }),
@@ -64,7 +73,12 @@ const buscar = async (req, res, next) => {
     if (hospedagem.status === 'ATIVA') {
       const agora = new Date();
       const dias = Math.max(1, Math.ceil((agora - hospedagem.dataEntrada) / 86400000));
-      hospedagem._totalProvisorio = dias * hospedagem.quarto.valorDiaria + totalConsumos;
+      // Busca tarifa para cálculo provisório
+      const tipoTarifa = getTipoTarifa(hospedagem.quarto);
+      const tarifa = await prisma.tarifaQuarto.findUnique({ where: { tipo: tipoTarifa } });
+      const valorPorPessoa = tarifa ? tarifa.valorPorPessoa : (hospedagem.quarto.valorDiaria || 0);
+      hospedagem._totalProvisorio = dias * valorPorPessoa * hospedagem.numHospedes + totalConsumos;
+      hospedagem._valorPorPessoa = valorPorPessoa;
       hospedagem._diasProvisorio = dias;
     }
 
@@ -119,7 +133,7 @@ const criar = async (req, res, next) => {
         },
         include: {
           cliente: { select: { id: true, nome: true } },
-          quarto: { select: { id: true, numero: true, predio: true, tipo: true, valorDiaria: true } },
+          quarto: { select: { id: true, numero: true, predio: true, tipo: true, temArCondicionado: true, valorDiaria: true } },
         },
       });
 
@@ -157,7 +171,7 @@ const atualizar = async (req, res, next) => {
       },
       include: {
         cliente: { select: { id: true, nome: true } },
-        quarto: { select: { id: true, numero: true, tipo: true, valorDiaria: true } },
+        quarto: { select: { id: true, numero: true, tipo: true, temArCondicionado: true, valorDiaria: true } },
       },
     });
 
@@ -188,7 +202,10 @@ const checkout = async (req, res, next) => {
 
     const dataSaida = new Date();
     const dias = Math.max(1, Math.ceil((dataSaida - hospedagem.dataEntrada) / 86400000));
-    const totalDiarias = dias * hospedagem.quarto.valorDiaria;
+    const tipoTarifa = getTipoTarifa(hospedagem.quarto);
+    const tarifa = await prisma.tarifaQuarto.findUnique({ where: { tipo: tipoTarifa } });
+    const valorPorPessoa = tarifa ? tarifa.valorPorPessoa : (hospedagem.quarto.valorDiaria || 0);
+    const totalDiarias = dias * valorPorPessoa * hospedagem.numHospedes;
     const totalConsumos = hospedagem.consumosExtras.reduce((sum, c) => sum + c.valor, 0);
     const valorTotal = totalDiarias + totalConsumos;
 

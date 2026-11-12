@@ -52,4 +52,14 @@ function authorize(...perfis) {
   };
 }
 
-module.exports = { authenticate, authorize };
+/**
+ * Middleware: Verifica se o usuário é ADMIN
+ */
+const requireAdmin = (req, res, next) => {
+  if (!req.user || req.user.perfil !== 'ADMIN') {
+    return res.status(403).json({ error: 'Acesso restrito a administradores' });
+  }
+  next();
+};
+
+module.exports = { authenticate, authorize, requireAdmin };

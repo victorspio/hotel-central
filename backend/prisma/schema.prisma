@@ -45,18 +45,19 @@ model Cliente {
 }
 
 model Quarto {
-  id          Int          @id @default(autoincrement())
-  numero      String
-  predio      String       @default("CENTRAL") // CENTRAL | ANEXO
-  tipo        String       @default("SOLTEIRO") // SOLTEIRO | CASAL | SUITE | FAMILIA
-  capacidade  Int          @default(1)
-  valorDiaria Float
-  andar       Int          @default(1)
-  status      String       @default("LIVRE") // LIVRE | OCUPADO | LIMPEZA | MANUTENCAO
-  descricao   String?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  hospedagens Hospedagem[]
+  id               Int          @id @default(autoincrement())
+  numero           String
+  predio           String       @default("CENTRAL") // CENTRAL | ANEXO
+  tipo             String       @default("SIMPLES") // SIMPLES | COMPLETO
+  temArCondicionado Boolean     @default(false)
+  capacidade       Int          @default(1)
+  valorDiaria      Float        @default(0)
+  andar            Int          @default(1)
+  status           String       @default("LIVRE") // LIVRE | OCUPADO | LIMPEZA | MANUTENCAO
+  descricao        String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  hospedagens      Hospedagem[]
 
   @@unique([numero, predio])
 }
@@ -106,4 +107,15 @@ model LancamentoFinanceiro {
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
   hospedagem     Hospedagem? @relation(fields: [hospedagemId], references: [id])
+}
+
+model TarifaQuarto {
+  id             Int      @id @default(autoincrement())
+  tipo           String   @unique // SIMPLES_SEM_AR | SIMPLES_COM_AR | COMPLETO
+  nome           String
+  valorPorPessoa Float
+  descricao      String?
+  ativo          Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
