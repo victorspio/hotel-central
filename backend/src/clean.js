@@ -22,6 +22,16 @@ async function clean() {
   await prisma.quarto.deleteMany();
   console.log('   ✅ Quartos removidos.');
 
+  await prisma.tarifaQuarto.deleteMany();
+  await prisma.tarifaQuarto.createMany({
+    data: [
+      { tipo: 'SIMPLES_SEM_AR', nome: 'Simples - Sem Ar Condicionado', valorPorPessoa: 0, descricao: 'Quarto simples sem ar condicionado' },
+      { tipo: 'SIMPLES_COM_AR', nome: 'Simples - Com Ar Condicionado', valorPorPessoa: 0, descricao: 'Quarto simples com ar condicionado' },
+      { tipo: 'COMPLETO', nome: 'Completo', valorPorPessoa: 0, descricao: 'Quarto completo com todos os recursos' },
+    ],
+  });
+  console.log('   ✅ Tarifas zeradas (prontas para você configurar os valores).');
+
   // Recriar os usuários padrões de login
   await prisma.user.deleteMany();
   const senhaHashAdmin = await bcrypt.hash('admin123', 10);
