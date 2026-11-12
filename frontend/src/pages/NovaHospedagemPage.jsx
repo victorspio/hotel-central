@@ -7,6 +7,7 @@ import { formatCurrency, formatDate, formatCPF, formatPhone } from '../utils/for
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
 import { Textarea } from '../components/ui/Input'
+import Select from '../components/ui/Select'
 import Badge from '../components/ui/Badge'
 import DatePicker from '../components/ui/DatePicker'
 import toast from 'react-hot-toast'
@@ -371,13 +372,16 @@ export default function NovaHospedagemPage() {
               />
             </div>
 
-            <Input
-              label="Número de Hóspedes"
-              type="number"
-              min="1"
-              max={selectedQuarto?.capacidade}
+            <Select
+              label="Quantidade de Hóspedes"
+              id="hospedes-select"
+              name="guest_quantity_select"
               value={form.numHospedes}
               onChange={(e) => setForm((f) => ({ ...f, numHospedes: e.target.value }))}
+              options={Array.from({ length: Math.max(1, selectedQuarto?.capacidade || 4) }, (_, i) => ({
+                value: String(i + 1),
+                label: `${i + 1} ${i === 0 ? 'hóspede' : 'hóspedes'}${selectedQuarto?.capacidade === (i + 1) ? ' (capacidade máxima)' : ''}`
+              }))}
             />
 
             <Textarea

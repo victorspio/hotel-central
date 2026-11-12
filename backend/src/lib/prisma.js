@@ -10,3 +10,4 @@ if (!global.__prismaInstance) {
 prisma = global.__prismaInstance;
 
 module.exports = prisma;
+
