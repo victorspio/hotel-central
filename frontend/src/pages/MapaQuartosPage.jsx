@@ -159,7 +159,7 @@ export default function MapaQuartosPage() {
         >
           <div className="flex items-center justify-between">
             <span className="text-sm sm:text-base font-bold text-blue-900 flex items-center gap-1.5">
-              <span>🏨</span> Prédio Central
+              <span>🏨</span> Hotel
             </span>
             <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
               {centralStats.total} quartos
@@ -182,7 +182,7 @@ export default function MapaQuartosPage() {
         >
           <div className="flex items-center justify-between">
             <span className="text-sm sm:text-base font-bold text-purple-900 flex items-center gap-1.5">
-              <span>🏢</span> Prédio Anexo
+              <span>🏢</span> Anexo
             </span>
             <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">
               {anexoStats.total} quartos
@@ -252,7 +252,7 @@ export default function MapaQuartosPage() {
         </div>
       ) : (
         <div className="space-y-6">
-          {/* Prédio Central Section */}
+          {/* Hotel Section */}
           {(predioTab === 'TODOS' || predioTab === 'CENTRAL') && (
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5 space-y-4">
               <div className="flex flex-wrap items-center justify-between pb-3 border-b border-gray-100 gap-2">
@@ -261,8 +261,8 @@ export default function MapaQuartosPage() {
                     🏨
                   </div>
                   <div>
-                    <h2 className="text-base font-bold text-gray-800">Prédio Central</h2>
-                    <p className="text-xs text-gray-500">Prédio Principal · {centralRooms.length} quarto(s)</p>
+                    <h2 className="text-base font-bold text-gray-800">Hotel</h2>
+                    <p className="text-xs text-gray-500">Hotel · {centralRooms.length} quarto(s)</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 text-xs">
@@ -280,7 +280,7 @@ export default function MapaQuartosPage() {
 
               {centralRooms.length === 0 ? (
                 <div className="text-center py-8 text-gray-400 bg-gray-50/50 rounded-xl border border-dashed border-gray-200 text-sm">
-                  Nenhum quarto no Prédio Central corresponde aos filtros.
+                  Nenhum quarto no Hotel corresponde aos filtros.
                 </div>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
@@ -302,7 +302,7 @@ export default function MapaQuartosPage() {
                       <div className="flex items-center justify-between text-xs mb-1">
                         <span className="text-gray-600 font-medium">{room.tipo}</span>
                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">
-                          Central
+                          Hotel
                         </span>
                       </div>
                       <p className="text-xs text-gray-500">{room.andar}º andar</p>
@@ -464,7 +464,7 @@ export default function MapaQuartosPage() {
               <div>
                 <p className="text-gray-500">Prédio</p>
                 <p className="font-semibold text-gray-800">
-                  {selectedRoom.predio === 'ANEXO' ? '🏢 Prédio Anexo' : '🏨 Prédio Central'}
+                  {selectedRoom.predio === 'ANEXO' ? '🏢 Anexo' : '🏨 Hotel'}
                 </p>
               </div>
               <div>

@@ -1,7 +1,6 @@
-const { PrismaClient } = require('@prisma/client');
+require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
+const prisma = require('./lib/prisma');
 const bcrypt = require('bcryptjs');
-
-const prisma = new PrismaClient();
 
 async function clean() {
   console.log('🧹 Limpando todos os dados do banco...');
@@ -25,12 +24,17 @@ async function clean() {
   await prisma.tarifaQuarto.deleteMany();
   await prisma.tarifaQuarto.createMany({
     data: [
-      { tipo: 'SIMPLES_SEM_AR', nome: 'Simples - Sem Ar Condicionado', valorPorPessoa: 0, descricao: 'Quarto simples sem ar condicionado' },
-      { tipo: 'SIMPLES_COM_AR', nome: 'Simples - Com Ar Condicionado', valorPorPessoa: 0, descricao: 'Quarto simples com ar condicionado' },
-      { tipo: 'COMPLETO', nome: 'Completo', valorPorPessoa: 0, descricao: 'Quarto completo com todos os recursos' },
+      // Hotel (Central)
+      { predio: 'CENTRAL', tipo: 'SIMPLES_SEM_AR', nome: 'Hotel - Simples Sem Ar', valorPorPessoa: 0, descricao: 'Hotel: Quarto simples sem ar condicionado' },
+      { predio: 'CENTRAL', tipo: 'SIMPLES_COM_AR', nome: 'Hotel - Simples Com Ar', valorPorPessoa: 0, descricao: 'Hotel: Quarto simples com ar condicionado' },
+      { predio: 'CENTRAL', tipo: 'COMPLETO', nome: 'Hotel - Completo', valorPorPessoa: 0, descricao: 'Hotel: Quarto completo' },
+      // Anexo
+      { predio: 'ANEXO', tipo: 'SIMPLES_SEM_AR', nome: 'Anexo - Simples Sem Ar', valorPorPessoa: 0, descricao: 'Anexo: Quarto simples sem ar condicionado' },
+      { predio: 'ANEXO', tipo: 'SIMPLES_COM_AR', nome: 'Anexo - Simples Com Ar', valorPorPessoa: 0, descricao: 'Anexo: Quarto simples com ar condicionado' },
+      { predio: 'ANEXO', tipo: 'COMPLETO', nome: 'Anexo - Completo', valorPorPessoa: 0, descricao: 'Anexo: Quarto completo' },
     ],
   });
-  console.log('   ✅ Tarifas zeradas (prontas para você configurar os valores).');
+  console.log('   ✅ 6 Tarifas zeradas (3 para Hotel e 3 para Anexo).');
 
   // Recriar os usuários padrões de login
   await prisma.user.deleteMany();

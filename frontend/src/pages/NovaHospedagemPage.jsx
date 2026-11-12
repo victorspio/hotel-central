@@ -150,8 +150,11 @@ export default function NovaHospedagemPage() {
     return d > 0 ? d : 0
   })()
 
+  const selectedPredio = selectedQuarto?.predio || 'CENTRAL'
   const tipoTarifaKey = getTipoTarifa(selectedQuarto)
-  const tarifaQuarto = tarifas.find((t) => t.tipo === tipoTarifaKey)
+  const tarifaQuarto = tarifas.find(
+    (t) => (t.predio || 'CENTRAL') === selectedPredio && t.tipo === tipoTarifaKey
+  )
   const valorPorPessoa = tarifaQuarto ? tarifaQuarto.valorPorPessoa : (selectedQuarto?.valorDiaria || 0)
   const numHospedes = parseInt(form.numHospedes) || 1
   const estimatedTotal = selectedQuarto ? estimatedDias * valorPorPessoa * numHospedes : 0
@@ -286,7 +289,7 @@ export default function NovaHospedagemPage() {
                 ].join(' ')}
               >
                 <div className="text-xs sm:text-sm font-bold flex items-center justify-center gap-1">
-                  <span>🏨</span> Prédio Central
+                  <span>🏨</span> Hotel
                 </div>
                 <div className="text-[11px] text-blue-600 font-medium mt-0.5">{countCentral} livres</div>
               </button>
@@ -302,7 +305,7 @@ export default function NovaHospedagemPage() {
                 ].join(' ')}
               >
                 <div className="text-xs sm:text-sm font-bold flex items-center justify-center gap-1">
-                  <span>🏢</span> Prédio Anexo
+                  <span>🏢</span> Anexo
                 </div>
                 <div className="text-[11px] text-purple-600 font-medium mt-0.5">{countAnexo} livres</div>
               </button>
@@ -314,7 +317,7 @@ export default function NovaHospedagemPage() {
               </div>
             ) : filteredRooms.length === 0 ? (
               <div className="text-center py-10 text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                <p>Nenhum quarto disponível {predioFilter !== 'TODOS' ? `no ${predioFilter === 'CENTRAL' ? 'Prédio Central' : 'Prédio Anexo'}` : ''}.</p>
+                <p>Nenhum quarto disponível {predioFilter !== 'TODOS' ? `no ${predioFilter === 'CENTRAL' ? 'Hotel' : 'Anexo'}` : ''}.</p>
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-80 overflow-y-auto scrollbar-thin pr-1">
@@ -332,7 +335,7 @@ export default function NovaHospedagemPage() {
                     <div className="flex items-start justify-between">
                       <p className="text-xl font-bold text-gray-800">{r.numero}</p>
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${r.predio === 'ANEXO' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
-                        {r.predio === 'ANEXO' ? 'Anexo' : 'Central'}
+                        {r.predio === 'ANEXO' ? 'Anexo' : 'Hotel'}
                       </span>
                     </div>
                     <p className="text-xs font-medium text-gray-700 mt-1">{getQuartoTipoDisplay(r)}</p>
@@ -403,7 +406,7 @@ export default function NovaHospedagemPage() {
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Quarto</span>
                   <span className="font-medium">
-                    Quarto {selectedQuarto.numero} · {getQuartoTipoDisplay(selectedQuarto)} ({selectedQuarto.predio === 'ANEXO' ? 'Prédio Anexo' : 'Prédio Central'})
+                    Quarto {selectedQuarto.numero} · {getQuartoTipoDisplay(selectedQuarto)} ({selectedQuarto.predio === 'ANEXO' ? 'Anexo' : 'Hotel'})
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">

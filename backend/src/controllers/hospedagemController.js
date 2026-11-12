@@ -71,9 +71,10 @@ const buscar = async (req, res, next) => {
     if (hospedagem.status === 'ATIVA') {
       const agora = new Date();
       const dias = Math.max(1, Math.ceil((agora - hospedagem.dataEntrada) / 86400000));
-      // Busca tarifa para cálculo provisório
+      // Busca tarifa para cálculo provisório considerando o prédio (Hotel ou Anexo)
       const tipoTarifa = getTipoTarifa(hospedagem.quarto);
-      const tarifa = await prisma.tarifaQuarto.findUnique({ where: { tipo: tipoTarifa } });
+      const predio = hospedagem.quarto.predio || 'CENTRAL';
+      const tarifa = await prisma.tarifaQuarto.findFirst({ where: { tipo: tipoTarifa, predio } });
       const valorPorPessoa = tarifa ? tarifa.valorPorPessoa : (hospedagem.quarto.valorDiaria || 0);
       hospedagem._totalProvisorio = dias * valorPorPessoa * hospedagem.numHospedes + totalConsumos;
       hospedagem._valorPorPessoa = valorPorPessoa;
@@ -201,7 +202,8 @@ const checkout = async (req, res, next) => {
     const dataSaida = new Date();
     const dias = Math.max(1, Math.ceil((dataSaida - hospedagem.dataEntrada) / 86400000));
     const tipoTarifa = getTipoTarifa(hospedagem.quarto);
-    const tarifa = await prisma.tarifaQuarto.findUnique({ where: { tipo: tipoTarifa } });
+    const predio = hospedagem.quarto.predio || 'CENTRAL';
+    const tarifa = await prisma.tarifaQuarto.findFirst({ where: { tipo: tipoTarifa, predio } });
     const valorPorPessoa = tarifa ? tarifa.valorPorPessoa : (hospedagem.quarto.valorDiaria || 0);
     const totalDiarias = dias * valorPorPessoa * hospedagem.numHospedes;
     const totalConsumos = hospedagem.consumosExtras.reduce((sum, c) => sum + c.valor, 0);

@@ -156,7 +156,7 @@ export default function HospedagemDetalhePage() {
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="page-title">Quarto {hosp.quarto?.numero}</h1>
             <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${hosp.quarto?.predio === 'ANEXO' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
-              {hosp.quarto?.predio === 'ANEXO' ? 'Prédio Anexo' : 'Prédio Central'}
+              {hosp.quarto?.predio === 'ANEXO' ? 'Anexo' : 'Hotel'}
             </span>
             <Badge color={statusColorMap[hosp.status] || 'gray'} className="text-sm px-3 py-1">
               {statusLabelMap[hosp.status] || hosp.status}

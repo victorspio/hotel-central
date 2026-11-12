@@ -111,11 +111,14 @@ model LancamentoFinanceiro {
 
 model TarifaQuarto {
   id             Int      @id @default(autoincrement())
-  tipo           String   @unique // SIMPLES_SEM_AR | SIMPLES_COM_AR | COMPLETO
+  tipo           String   // SIMPLES_SEM_AR | SIMPLES_COM_AR | COMPLETO
+  predio         String   @default("CENTRAL") // CENTRAL (Hotel) | ANEXO
   nome           String
   valorPorPessoa Float
   descricao      String?
   ativo          Boolean  @default(true)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+
+  @@unique([tipo, predio])
 }

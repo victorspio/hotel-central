@@ -3,8 +3,13 @@ const prisma = require('../lib/prisma');
 // GET /api/tarifas - listar todas
 const listar = async (req, res, next) => {
   try {
+    const { predio } = req.query;
+    const where = {};
+    if (predio) where.predio = predio.toUpperCase();
+
     const tarifas = await prisma.tarifaQuarto.findMany({
-      orderBy: { tipo: 'asc' },
+      where,
+      orderBy: [{ predio: 'asc' }, { tipo: 'asc' }],
     });
     res.json(tarifas);
   } catch (err) {
@@ -41,11 +46,15 @@ const atualizar = async (req, res, next) => {
   }
 };
 
-// GET /api/tarifas/por-tipo/:tipo - buscar tarifa por tipo
+// GET /api/tarifas/por-tipo/:tipo - buscar tarifa por tipo e prédio
 const buscarPorTipo = async (req, res, next) => {
   try {
     const { tipo } = req.params;
-    const tarifa = await prisma.tarifaQuarto.findUnique({ where: { tipo } });
+    const { predio = 'CENTRAL' } = req.query;
+    const predioNormalizado = predio.toUpperCase() === 'ANEXO' ? 'ANEXO' : 'CENTRAL';
+    const tarifa = await prisma.tarifaQuarto.findFirst({
+      where: { tipo, predio: predioNormalizado },
+    });
     if (!tarifa) return res.status(404).json({ error: 'Tarifa não encontrada' });
     res.json(tarifa);
   } catch (err) {

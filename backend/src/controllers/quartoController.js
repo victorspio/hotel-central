@@ -101,7 +101,7 @@ const criar = async (req, res, next) => {
     });
     if (existente) {
       return res.status(409).json({
-        error: `O quarto ${numero} já está cadastrado no ${predioNormalizado === 'CENTRAL' ? 'Prédio Central' : 'Prédio Anexo'}`,
+        error: `O quarto ${numero} já está cadastrado no ${predioNormalizado === 'CENTRAL' ? 'Hotel' : 'Anexo'}`,
       });
     }
 
@@ -156,7 +156,7 @@ const atualizar = async (req, res, next) => {
       });
       if (duplicado) {
         return res.status(409).json({
-          error: `O quarto ${numeroDestino} já está cadastrado no ${predioDestino === 'CENTRAL' ? 'Prédio Central' : 'Prédio Anexo'}`,
+          error: `O quarto ${numeroDestino} já está cadastrado no ${predioDestino === 'CENTRAL' ? 'Hotel' : 'Anexo'}`,
         });
       }
     }

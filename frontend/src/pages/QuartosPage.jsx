@@ -12,8 +12,8 @@ import Badge from '../components/ui/Badge'
 import toast from 'react-hot-toast'
 
 const predioOptions = [
-  { value: 'CENTRAL', label: 'Prédio Central' },
-  { value: 'ANEXO', label: 'Prédio Anexo' }
+  { value: 'CENTRAL', label: 'Hotel' },
+  { value: 'ANEXO', label: 'Anexo' }
 ]
 
 const tipoOptions = [
@@ -168,7 +168,7 @@ export default function QuartosPage() {
       label: 'Prédio',
       render: (v) => (
         <Badge color={v === 'ANEXO' ? 'purple' : 'blue'}>
-          {v === 'ANEXO' ? 'Anexo' : 'Central'}
+          {v === 'ANEXO' ? 'Anexo' : 'Hotel'}
         </Badge>
       )
     },

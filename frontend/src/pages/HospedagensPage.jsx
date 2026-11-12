@@ -51,7 +51,7 @@ export default function HospedagensPage() {
       <span>
         Quarto {v?.numero || '-'}{' '}
         <span className="text-[11px] text-gray-500 font-normal">
-          ({v?.predio === 'ANEXO' ? 'Anexo' : 'Central'})
+          ({v?.predio === 'ANEXO' ? 'Anexo' : 'Hotel'})
         </span>
       </span>
     ) },
