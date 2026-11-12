@@ -16,7 +16,8 @@ async function authenticate(req, res, next) {
     const token = authHeader.split(' ')[1];
     let decoded;
     try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const secret = process.env.JWT_SECRET || 'hotel_central_jwt_secret_2024_super_seguro';
+      decoded = jwt.verify(token, secret);
     } catch (err) {
       return res.status(401).json({ error: 'Token inválido ou expirado' });
     }

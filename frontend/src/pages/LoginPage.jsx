@@ -33,12 +33,11 @@ export default function LoginPage() {
       navigate('/dashboard', { replace: true })
     } catch (err) {
       console.error('Erro no login:', err)
-      const msg =
-        err?.response?.data?.error ||
-        err?.response?.data?.message ||
-        err?.response?.data?.erro ||
-        err?.message ||
-        'E-mail ou senha incorretos.'
+      console.error('Detalhes do servidor:', err?.response?.data)
+      const data = err?.response?.data
+      const msg = data?.message
+        ? `${data.error || 'Erro'}: ${data.message}`
+        : (data?.error || err?.message || 'E-mail ou senha incorretos.')
       setError(msg)
     } finally {
       setLoading(false)

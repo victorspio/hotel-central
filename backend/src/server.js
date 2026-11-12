@@ -4,7 +4,21 @@ const fs = require('fs');
 const express = require('express');
 const cors = require('cors');
 
-// Ensure DATABASE_URL is resolved to absolute path if needed
+// Clean and normalize DATABASE_URL if provided
+if (process.env.DATABASE_URL) {
+  let dbUrl = process.env.DATABASE_URL.trim();
+  // Strip surrounding quotes
+  if ((dbUrl.startsWith('"') && dbUrl.endsWith('"')) || (dbUrl.startsWith("'") && dbUrl.endsWith("'"))) {
+    dbUrl = dbUrl.slice(1, -1).trim();
+  }
+  // Encode brackets and special chars in password if left as [senha]
+  if (dbUrl.includes(':[') && dbUrl.includes(']@')) {
+    dbUrl = dbUrl.replace(/:\[(.*?)\]@/, (match, p1) => `:${encodeURIComponent(p1)}@`);
+  }
+  process.env.DATABASE_URL = dbUrl;
+}
+
+// Ensure DATABASE_URL is resolved to absolute path if needed for SQLite fallback
 if (!process.env.DATABASE_URL || process.env.DATABASE_URL.includes('./')) {
   const possibleDbPaths = [
     path.join(__dirname, '../prisma/hotel.db'),
@@ -58,9 +72,31 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/relatorios', relatorioRoutes);
 app.use('/api/tarifas', tarifaRoutes);
 
-// Health check
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+// Health check and diagnostics
+app.get(['/health', '/api/health'], async (req, res) => {
+  const diagnostics = {
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    nodeEnv: process.env.NODE_ENV || 'unset',
+    hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
+    databaseUrlType: process.env.DATABASE_URL ? (process.env.DATABASE_URL.startsWith('postgres') ? 'postgresql' : 'sqlite/other') : 'none',
+    hasJwtSecret: Boolean(process.env.JWT_SECRET),
+  };
+
+  try {
+    const { PrismaClient } = require('@prisma/client');
+    const prisma = new PrismaClient();
+    const userCount = await prisma.user.count();
+    diagnostics.database = 'connected';
+    diagnostics.totalUsers = userCount;
+    await prisma.$disconnect();
+    return res.json(diagnostics);
+  } catch (err) {
+    diagnostics.database = 'error';
+    diagnostics.databaseError = err.message;
+    diagnostics.databaseCode = err.code || null;
+    return res.status(500).json(diagnostics);
+  }
 });
 
 // Static frontend in production

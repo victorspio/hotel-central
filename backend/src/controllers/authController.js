@@ -6,9 +6,10 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 function generateToken(user) {
+  const secret = process.env.JWT_SECRET || 'hotel_central_jwt_secret_2024_super_seguro';
   return jwt.sign(
     { id: user.id, email: user.email, perfil: user.perfil, nome: user.nome },
-    process.env.JWT_SECRET,
+    secret,
     { expiresIn: '8h' }
   );
 }
