@@ -16,11 +16,6 @@ const predioOptions = [
   { value: 'ANEXO', label: 'Anexo' }
 ]
 
-const tipoOptions = [
-  { value: 'SIMPLES', label: 'Simples' },
-  { value: 'COMPLETO', label: 'Completo' }
-]
-
 const statusOptions = [
   { value: 'LIVRE', label: 'Livre' },
   { value: 'OCUPADO', label: 'Ocupado' },
@@ -35,22 +30,16 @@ const statusColorMap = {
   MANUTENCAO: 'gray'
 }
 
-function getTipoDisplay(quarto) {
-  if (quarto.tipo === 'COMPLETO') return 'Completo'
-  if (quarto.tipo === 'SIMPLES' && quarto.temArCondicionado) return 'Simples - Com Ar'
-  return 'Simples - Sem Ar'
-}
-
 const emptyForm = {
-  numero: '', predio: 'CENTRAL', tipo: 'SIMPLES', capacidade: '2', andar: '1',
-  status: 'LIVRE', descricao: '', temArCondicionado: false
+  numero: '', predio: 'CENTRAL', capacidade: '2', andar: '1',
+  status: 'LIVRE', descricao: ''
 }
 
 export default function QuartosPage() {
   const { isAdmin } = useAuth()
   const [list, setList] = useState([])
   const [loading, setLoading] = useState(true)
-  const [filters, setFilters] = useState({ tipo: '', status: '', andar: '', predio: '' })
+  const [filters, setFilters] = useState({ status: '', andar: '', predio: '' })
   const [pagination, setPagination] = useState({ page: 1, limit: 15, total: 0, totalPages: 1 })
   const [modalOpen, setModalOpen] = useState(false)
   const [deleteModal, setDeleteModal] = useState(null)
@@ -62,7 +51,6 @@ export default function QuartosPage() {
     setLoading(true)
     try {
       const params = { page, limit: 15 }
-      if (filters.tipo) params.tipo = filters.tipo
       if (filters.status) params.status = filters.status
       if (filters.andar) params.andar = filters.andar
       if (filters.predio) params.predio = filters.predio
@@ -97,23 +85,19 @@ export default function QuartosPage() {
     setForm({
       numero: q.numero || '',
       predio: q.predio || 'CENTRAL',
-      tipo: q.tipo || 'SIMPLES',
       capacidade: String(q.capacidade || 2),
       andar: String(q.andar || 1),
       status: q.status || 'LIVRE',
-      descricao: q.descricao || '',
-      temArCondicionado: q.temArCondicionado || false
+      descricao: q.descricao || ''
     })
     setModalOpen(true)
   }
 
   const onChange = (field) => (e) => {
-    const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value
+    const value = e.target.value
     setForm((f) => ({
       ...f,
-      [field]: value,
-      // Reset AC flag when switching to COMPLETO
-      ...(field === 'tipo' && value === 'COMPLETO' ? { temArCondicionado: false } : {})
+      [field]: value
     }))
   }
 
@@ -124,12 +108,10 @@ export default function QuartosPage() {
       const payload = {
         numero: form.numero,
         predio: form.predio || 'CENTRAL',
-        tipo: form.tipo,
-        capacidade: parseInt(form.capacidade),
-        andar: parseInt(form.andar),
-        status: form.status,
-        descricao: form.descricao,
-        temArCondicionado: form.tipo === 'SIMPLES' ? Boolean(form.temArCondicionado) : false
+        capacidade: parseInt(form.capacidade) || 1,
+        andar: parseInt(form.andar) || 1,
+        status: form.status || 'LIVRE',
+        descricao: form.descricao || ''
       }
       if (editItem) {
         await quartosApi.update(editItem.id, payload)
@@ -172,12 +154,12 @@ export default function QuartosPage() {
         </Badge>
       )
     },
-    { key: 'tipo', label: 'Tipo', render: (_, row) => getTipoDisplay(row) },
     { key: 'andar', label: 'Andar', render: (v) => `${v}º` },
-    { key: 'capacidade', label: 'Capacidade', render: (v) => `${v} pess.` },
+    { key: 'capacidade', label: 'Capacidade Máx.', render: (v) => `${v} pess.` },
     { key: 'status', label: 'Status', render: (v) => (
       <Badge color={statusColorMap[v] || 'gray'}>{getStatusLabel(v)}</Badge>
     )},
+    { key: 'descricao', label: 'Descrição', render: (v) => <span className="text-xs text-gray-500 truncate max-w-xs">{v || '-'}</span> },
     { key: 'id', label: 'Ações', width: '100px', render: (_, row) => (
       <div className="flex items-center gap-1">
         <button onClick={() => openEdit(row)} className="p-1.5 rounded text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors">
@@ -211,12 +193,6 @@ export default function QuartosPage() {
           containerClassName="w-44"
         />
         <Select
-          options={[{ value: '', label: 'Todos os tipos' }, ...tipoOptions]}
-          value={filters.tipo}
-          onChange={(e) => setFilters((f) => ({ ...f, tipo: e.target.value }))}
-          containerClassName="w-44"
-        />
-        <Select
           options={[{ value: '', label: 'Todos os status' }, ...statusOptions]}
           value={filters.status}
           onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value }))}
@@ -228,7 +204,7 @@ export default function QuartosPage() {
           onChange={(e) => setFilters((f) => ({ ...f, andar: e.target.value }))}
           containerClassName="w-40"
         />
-        <Button variant="ghost" size="sm" onClick={() => setFilters({ tipo: '', status: '', andar: '', predio: '' })}>
+        <Button variant="ghost" size="sm" onClick={() => setFilters({ status: '', andar: '', predio: '' })}>
           Limpar
         </Button>
       </div>
@@ -256,37 +232,21 @@ export default function QuartosPage() {
         }
       >
         <div className="grid grid-cols-2 gap-4">
-          <Input label="Número" required value={form.numero} onChange={onChange('numero')} placeholder="Ex: 101" />
+          <Input label="Número do Quarto" required value={form.numero} onChange={onChange('numero')} placeholder="Ex: 101" />
           <Select label="Prédio" options={predioOptions} value={form.predio} onChange={onChange('predio')} />
-          <Select label="Tipo" options={tipoOptions} value={form.tipo} onChange={onChange('tipo')} />
-
-          {/* Conditional AC field */}
-          {form.tipo === 'SIMPLES' && (
-            <div className="col-span-2">
-              <label className="form-label block mb-2">Ar Condicionado</label>
-              <select
-                name="temArCondicionado"
-                className="form-input"
-                value={form.temArCondicionado ? 'true' : 'false'}
-                onChange={(e) => setForm((f) => ({ ...f, temArCondicionado: e.target.value === 'true' }))}
-              >
-                <option value="false">Sem Ar Condicionado</option>
-                <option value="true">Com Ar Condicionado</option>
-              </select>
-            </div>
-          )}
-
-          <Input label="Capacidade (pessoas)" type="number" min="1" value={form.capacidade} onChange={onChange('capacidade')} />
+          <Input label="Quantidade máxima de pessoas" type="number" min="1" value={form.capacidade} onChange={onChange('capacidade')} />
           <Input label="Andar" type="number" min="1" value={form.andar} onChange={onChange('andar')} />
-          <Select label="Status" options={statusOptions} value={form.status} onChange={onChange('status')} />
           <div className="col-span-2">
-            <Input label="Descrição" value={form.descricao} onChange={onChange('descricao')} placeholder="Descrição do quarto..." />
+            <Select label="Status" options={statusOptions} value={form.status} onChange={onChange('status')} />
+          </div>
+          <div className="col-span-2">
+            <Input label="Descrição" value={form.descricao} onChange={onChange('descricao')} placeholder="Ex: Quarto com vista para a rua..." />
           </div>
         </div>
 
         {/* Info about tariffs */}
         <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-700">
-          O valor da diária é definido pela tabela de tarifas (por pessoa) em <strong>Configurações</strong>, não por quarto individualmente.
+          O tipo de acomodação (Simples com/sem Ar ou Completo) e os valores das diárias são definidos no momento de cadastrar a hospedagem.
         </div>
       </Modal>
 

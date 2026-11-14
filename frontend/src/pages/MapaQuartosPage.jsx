@@ -35,7 +35,7 @@ export default function MapaQuartosPage() {
   const [rooms, setRooms] = useState([])
   const [loading, setLoading] = useState(true)
   const [predioTab, setPredioTab] = useState('TODOS') // 'TODOS' | 'CENTRAL' | 'ANEXO'
-  const [filters, setFilters] = useState({ andar: '', tipo: '', status: '' })
+  const [filters, setFilters] = useState({ andar: '', status: '' })
   const [selectedRoom, setSelectedRoom] = useState(null)
   const [roomStay, setRoomStay] = useState(null)
   const [modalOpen, setModalOpen] = useState(false)
@@ -61,7 +61,6 @@ export default function MapaQuartosPage() {
 
   const filtered = rooms.filter((r) => {
     if (filters.andar && String(r.andar) !== String(filters.andar)) return false
-    if (filters.tipo && r.tipo !== filters.tipo) return false
     if (filters.status && r.status !== filters.status) return false
     return true
   })
@@ -204,12 +203,6 @@ export default function MapaQuartosPage() {
           containerClassName="w-40"
         />
         <Select
-          options={tipoOptions}
-          value={filters.tipo}
-          onChange={(e) => setFilters((f) => ({ ...f, tipo: e.target.value }))}
-          containerClassName="w-44"
-        />
-        <Select
           options={statusOptions}
           value={filters.status}
           onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value }))}
@@ -218,7 +211,7 @@ export default function MapaQuartosPage() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => setFilters({ andar: '', tipo: '', status: '' })}
+          onClick={() => setFilters({ andar: '', status: '' })}
         >
           Limpar filtros
         </Button>
@@ -300,15 +293,12 @@ export default function MapaQuartosPage() {
                         </Badge>
                       </div>
                       <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="text-gray-600 font-medium">{room.tipo}</span>
+                        <span className="text-gray-600 font-medium">Até {room.capacidade} pess.</span>
                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">
                           Hotel
                         </span>
                       </div>
                       <p className="text-xs text-gray-500">{room.andar}º andar</p>
-                      <p className="text-xs font-semibold text-gray-700 mt-1">
-                        {formatCurrency(room.valorDiaria)}/dia
-                      </p>
 
                       {/* Quick status change */}
                       <div className="mt-2" onClick={(e) => e.stopPropagation()}>
@@ -379,15 +369,12 @@ export default function MapaQuartosPage() {
                         </Badge>
                       </div>
                       <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="text-gray-600 font-medium">{room.tipo}</span>
+                        <span className="text-gray-600 font-medium">Até {room.capacidade} pess.</span>
                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-100 text-purple-700">
                           Anexo
                         </span>
                       </div>
                       <p className="text-xs text-gray-500">{room.andar}º andar</p>
-                      <p className="text-xs font-semibold text-gray-700 mt-1">
-                        {formatCurrency(room.valorDiaria)}/dia
-                      </p>
 
                       {/* Quick status change */}
                       <div className="mt-2" onClick={(e) => e.stopPropagation()}>
@@ -468,20 +455,12 @@ export default function MapaQuartosPage() {
                 </p>
               </div>
               <div>
-                <p className="text-gray-500">Tipo</p>
-                <p className="font-semibold text-gray-800">{selectedRoom.tipo}</p>
-              </div>
-              <div>
                 <p className="text-gray-500">Andar</p>
-                <p className="font-semibold text-gray-800">{selectedRoom.andar}º</p>
+                <p className="font-semibold text-gray-800">{selectedRoom.andar}º andar</p>
               </div>
               <div>
-                <p className="text-gray-500">Capacidade</p>
+                <p className="text-gray-500">Capacidade máxima</p>
                 <p className="font-semibold text-gray-800">{selectedRoom.capacidade} pessoa(s)</p>
-              </div>
-              <div>
-                <p className="text-gray-500">Diária</p>
-                <p className="font-semibold text-gray-800">{formatCurrency(selectedRoom.valorDiaria)}</p>
               </div>
             </div>
 

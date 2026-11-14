@@ -84,14 +84,10 @@ const buscar = async (req, res, next) => {
 
 const criar = async (req, res, next) => {
   try {
-    const { numero, predio, tipo, temArCondicionado, capacidade, valorDiaria, andar, descricao } = req.body;
+    const { numero, predio, capacidade, andar, status, descricao } = req.body;
 
     if (!numero) {
       return res.status(400).json({ error: 'Número do quarto é obrigatório' });
-    }
-
-    if (tipo && !TIPOS_VALIDOS.includes(tipo)) {
-      return res.status(400).json({ error: `Tipo inválido. Use: ${TIPOS_VALIDOS.join(', ')}` });
     }
 
     const predioNormalizado = (predio && ['CENTRAL', 'ANEXO'].includes(predio.toUpperCase())) ? predio.toUpperCase() : 'CENTRAL';
@@ -109,13 +105,13 @@ const criar = async (req, res, next) => {
       data: {
         numero: String(numero),
         predio: predioNormalizado,
-        tipo: tipo || 'SIMPLES',
-        temArCondicionado: temArCondicionado !== undefined ? Boolean(temArCondicionado) : false,
+        tipo: 'SIMPLES',
+        temArCondicionado: false,
         capacidade: Number(capacidade) || 1,
-        valorDiaria: valorDiaria !== undefined ? Number(valorDiaria) : 0,
+        valorDiaria: 0,
         andar: Number(andar) || 1,
         descricao,
-        status: 'LIVRE',
+        status: status || 'LIVRE',
       },
     });
 
@@ -128,15 +124,11 @@ const criar = async (req, res, next) => {
 const atualizar = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { numero, predio, tipo, temArCondicionado, capacidade, valorDiaria, andar, status, descricao } = req.body;
+    const { numero, predio, capacidade, andar, status, descricao } = req.body;
 
     const quarto = await prisma.quarto.findUnique({ where: { id: Number(id) } });
     if (!quarto) {
       return res.status(404).json({ error: 'Quarto não encontrado' });
-    }
-
-    if (tipo && !TIPOS_VALIDOS.includes(tipo)) {
-      return res.status(400).json({ error: `Tipo inválido. Use: ${TIPOS_VALIDOS.join(', ')}` });
     }
 
     if (status && !STATUS_VALIDOS.includes(status)) {
@@ -166,13 +158,10 @@ const atualizar = async (req, res, next) => {
       data: {
         numero: numero ? String(numero) : undefined,
         predio: predioDestino,
-        tipo,
-        temArCondicionado: temArCondicionado !== undefined ? Boolean(temArCondicionado) : undefined,
         capacidade: capacidade !== undefined ? Number(capacidade) : undefined,
-        valorDiaria: valorDiaria !== undefined ? Number(valorDiaria) : undefined,
         andar: andar !== undefined ? Number(andar) : undefined,
-        status,
-        descricao,
+        status: status || undefined,
+        descricao: descricao !== undefined ? descricao : undefined,
       },
     });
 

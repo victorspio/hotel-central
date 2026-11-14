@@ -47,13 +47,18 @@ export default function HospedagensPage() {
 
   const columns = [
     { key: 'cliente', label: 'Cliente', render: (v) => <span className="font-medium">{v?.nome || '-'}</span> },
-    { key: 'quarto', label: 'Quarto', render: (v) => (
-      <span>
-        Quarto {v?.numero || '-'}{' '}
-        <span className="text-[11px] text-gray-500 font-normal">
-          ({v?.predio === 'ANEXO' ? 'Anexo' : 'Hotel'})
+    { key: 'quarto', label: 'Quarto', render: (v, row) => (
+      <div>
+        <span className="font-medium">
+          Quarto {v?.numero || '-'}{' '}
+          <span className="text-[11px] text-gray-500 font-normal">
+            ({v?.predio === 'ANEXO' ? 'Anexo' : 'Hotel'})
+          </span>
         </span>
-      </span>
+        <div className="text-[11px] text-primary-700 font-medium">
+          {row.tipo === 'COMPLETO' ? 'Completo' : (row.temArCondicionado ? 'Simples c/ Ar' : 'Simples s/ Ar')}
+        </div>
+      </div>
     ) },
     { key: 'dataEntrada', label: 'Entrada', render: (v) => formatDate(v) },
     { key: 'previsaoSaida', label: 'Prev. Saída', render: (v) => formatDate(v) },

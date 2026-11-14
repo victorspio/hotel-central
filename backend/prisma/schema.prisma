@@ -63,23 +63,27 @@ model Quarto {
 }
 
 model Hospedagem {
-  id               Int                   @id @default(autoincrement())
-  clienteId        Int
-  quartoId         Int
-  dataEntrada      DateTime
-  dataSaida        DateTime?
-  previsaoSaida    DateTime
-  numHospedes      Int                   @default(1)
-  status           String                @default("ATIVA") // ATIVA | FINALIZADA | CANCELADA
-  valorTotal       Float?
-  formaPagamento   String?
-  observacoes      String?
-  createdAt        DateTime              @default(now())
-  updatedAt        DateTime              @updatedAt
-  cliente          Cliente               @relation(fields: [clienteId], references: [id])
-  quarto           Quarto                @relation(fields: [quartoId], references: [id])
-  consumosExtras   ConsumoExtra[]
-  lancamento       LancamentoFinanceiro?
+  id                Int                   @id @default(autoincrement())
+  clienteId         Int
+  quartoId          Int
+  dataEntrada       DateTime
+  dataSaida         DateTime?
+  previsaoSaida     DateTime
+  numHospedes       Int                   @default(1)
+  tipo              String                @default("SIMPLES") // SIMPLES | COMPLETO
+  temArCondicionado Boolean               @default(false)
+  tipoTarifa        String                @default("SIMPLES_SEM_AR") // SIMPLES_SEM_AR | SIMPLES_COM_AR | COMPLETO
+  valorDiariaPessoa Float                 @default(0)
+  status            String                @default("ATIVA") // ATIVA | FINALIZADA | CANCELADA
+  valorTotal        Float?
+  formaPagamento    String?
+  observacoes       String?
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  cliente           Cliente               @relation(fields: [clienteId], references: [id])
+  quarto            Quarto                @relation(fields: [quartoId], references: [id])
+  consumosExtras    ConsumoExtra[]
+  lancamento        LancamentoFinanceiro?
 }
 
 model ConsumoExtra {

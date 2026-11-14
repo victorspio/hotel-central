@@ -71,11 +71,11 @@ const buscar = async (req, res, next) => {
     if (hospedagem.status === 'ATIVA') {
       const agora = new Date();
       const dias = Math.max(1, Math.ceil((agora - hospedagem.dataEntrada) / 86400000));
-      // Busca tarifa para cálculo provisório considerando o prédio (Hotel ou Anexo)
-      const tipoTarifa = getTipoTarifa(hospedagem.quarto);
-      const predio = hospedagem.quarto.predio || 'CENTRAL';
+      // Busca tarifa para cálculo provisório considerando o tipo da hospedagem e o prédio (Hotel ou Anexo)
+      const tipoTarifa = hospedagem.tipoTarifa || getTipoTarifa(hospedagem.quarto);
+      const predio = hospedagem.quarto?.predio || 'CENTRAL';
       const tarifa = await prisma.tarifaQuarto.findFirst({ where: { tipo: tipoTarifa, predio } });
-      const valorPorPessoa = tarifa ? tarifa.valorPorPessoa : (hospedagem.quarto.valorDiaria || 0);
+      const valorPorPessoa = tarifa ? tarifa.valorPorPessoa : (hospedagem.valorDiariaPessoa || hospedagem.quarto?.valorDiaria || 0);
       hospedagem._totalProvisorio = dias * valorPorPessoa * hospedagem.numHospedes + totalConsumos;
       hospedagem._valorPorPessoa = valorPorPessoa;
       hospedagem._diasProvisorio = dias;
@@ -89,7 +89,16 @@ const buscar = async (req, res, next) => {
 
 const criar = async (req, res, next) => {
   try {
-    const { clienteId, quartoId, dataEntrada, previsaoSaida, numHospedes, observacoes } = req.body;
+    const {
+      clienteId,
+      quartoId,
+      dataEntrada,
+      previsaoSaida,
+      numHospedes,
+      tipo,
+      temArCondicionado,
+      observacoes
+    } = req.body;
 
     if (!clienteId || !quartoId || !dataEntrada || !previsaoSaida) {
       return res.status(400).json({ error: 'clienteId, quartoId, dataEntrada e previsaoSaida são obrigatórios' });
@@ -119,6 +128,16 @@ const criar = async (req, res, next) => {
       return res.status(409).json({ error: 'Quarto já possui reserva no período informado' });
     }
 
+    const tipoHospedagem = (tipo && ['SIMPLES', 'COMPLETO'].includes(String(tipo).toUpperCase())) ? String(tipo).toUpperCase() : 'SIMPLES';
+    const arCondicionado = tipoHospedagem === 'SIMPLES' ? Boolean(temArCondicionado) : false;
+    const tipoTarifa = tipoHospedagem === 'COMPLETO' ? 'COMPLETO' : (arCondicionado ? 'SIMPLES_COM_AR' : 'SIMPLES_SEM_AR');
+    const predio = quarto.predio || 'CENTRAL';
+
+    const tarifa = await prisma.tarifaQuarto.findFirst({
+      where: { tipo: tipoTarifa, predio }
+    });
+    const valorDiariaPessoa = tarifa ? tarifa.valorPorPessoa : (quarto.valorDiaria || 0);
+
     const hospedagem = await prisma.$transaction(async (tx) => {
       const h = await tx.hospedagem.create({
         data: {
@@ -127,6 +146,10 @@ const criar = async (req, res, next) => {
           dataEntrada: new Date(dataEntrada),
           previsaoSaida: new Date(previsaoSaida),
           numHospedes: Number(numHospedes) || 1,
+          tipo: tipoHospedagem,
+          temArCondicionado: arCondicionado,
+          tipoTarifa,
+          valorDiariaPessoa,
           observacoes,
           status: 'ATIVA',
         },
@@ -201,10 +224,10 @@ const checkout = async (req, res, next) => {
 
     const dataSaida = new Date();
     const dias = Math.max(1, Math.ceil((dataSaida - hospedagem.dataEntrada) / 86400000));
-    const tipoTarifa = getTipoTarifa(hospedagem.quarto);
-    const predio = hospedagem.quarto.predio || 'CENTRAL';
+    const tipoTarifa = hospedagem.tipoTarifa || getTipoTarifa(hospedagem.quarto);
+    const predio = hospedagem.quarto?.predio || 'CENTRAL';
     const tarifa = await prisma.tarifaQuarto.findFirst({ where: { tipo: tipoTarifa, predio } });
-    const valorPorPessoa = tarifa ? tarifa.valorPorPessoa : (hospedagem.quarto.valorDiaria || 0);
+    const valorPorPessoa = tarifa ? tarifa.valorPorPessoa : (hospedagem.valorDiariaPessoa || hospedagem.quarto?.valorDiaria || 0);
     const totalDiarias = dias * valorPorPessoa * hospedagem.numHospedes;
     const totalConsumos = hospedagem.consumosExtras.reduce((sum, c) => sum + c.valor, 0);
     const valorTotal = totalDiarias + totalConsumos;

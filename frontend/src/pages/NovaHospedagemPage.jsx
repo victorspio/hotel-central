@@ -22,22 +22,11 @@ const STEPS = [
 const tipoLabel = {
   SIMPLES: 'Simples',
   COMPLETO: 'Completo',
-  SOLTEIRO: 'Simples',
-  CASAL: 'Completo'
 }
 
-function getQuartoTipoDisplay(quarto) {
-  if (!quarto) return ''
-  if (quarto.tipo === 'COMPLETO') return 'Completo'
-  if (quarto.tipo === 'SIMPLES' && quarto.temArCondicionado) return 'Simples (Com Ar)'
-  return 'Simples (Sem Ar)'
-}
-
-function getTipoTarifa(quarto) {
-  if (!quarto) return 'SIMPLES_SEM_AR'
-  if (quarto.tipo === 'COMPLETO') return 'COMPLETO'
-  if (quarto.tipo === 'SIMPLES' && quarto.temArCondicionado) return 'SIMPLES_COM_AR'
-  return 'SIMPLES_SEM_AR'
+function getAcomodacaoDisplay(tipo, temAr) {
+  if (tipo === 'COMPLETO') return 'Quarto Completo'
+  return temAr ? 'Simples (Com Ar)' : 'Simples (Sem Ar)'
 }
 
 function StepIndicator({ current }) {
@@ -75,6 +64,8 @@ export default function NovaHospedagemPage() {
   const [step, setStep] = useState(1)
   const [selectedCliente, setSelectedCliente] = useState(null)
   const [selectedQuarto, setSelectedQuarto] = useState(null)
+  const [tipoAcomodacao, setTipoAcomodacao] = useState('SIMPLES') // 'SIMPLES' | 'COMPLETO'
+  const [temArCondicionado, setTemArCondicionado] = useState(false)
   const [tarifas, setTarifas] = useState([])
   const [form, setForm] = useState({
     dataEntrada: format(new Date(), 'yyyy-MM-dd'),
@@ -151,11 +142,13 @@ export default function NovaHospedagemPage() {
   })()
 
   const selectedPredio = selectedQuarto?.predio || 'CENTRAL'
-  const tipoTarifaKey = getTipoTarifa(selectedQuarto)
+  const tipoTarifaKey = tipoAcomodacao === 'COMPLETO'
+    ? 'COMPLETO'
+    : (temArCondicionado ? 'SIMPLES_COM_AR' : 'SIMPLES_SEM_AR')
   const tarifaQuarto = tarifas.find(
     (t) => (t.predio || 'CENTRAL') === selectedPredio && t.tipo === tipoTarifaKey
   )
-  const valorPorPessoa = tarifaQuarto ? tarifaQuarto.valorPorPessoa : (selectedQuarto?.valorDiaria || 0)
+  const valorPorPessoa = tarifaQuarto ? tarifaQuarto.valorPorPessoa : 0
   const numHospedes = parseInt(form.numHospedes) || 1
   const estimatedTotal = selectedQuarto ? estimatedDias * valorPorPessoa * numHospedes : 0
 
@@ -172,6 +165,8 @@ export default function NovaHospedagemPage() {
         dataEntrada: form.dataEntrada,
         previsaoSaida: form.previsaoSaida,
         numHospedes: parseInt(form.numHospedes),
+        tipo: tipoAcomodacao,
+        temArCondicionado: tipoAcomodacao === 'SIMPLES' ? temArCondicionado : false,
         observacoes: form.observacoes
       })
       const created = res.data?.hospedagem || res.data
@@ -338,8 +333,8 @@ export default function NovaHospedagemPage() {
                         {r.predio === 'ANEXO' ? 'Anexo' : 'Hotel'}
                       </span>
                     </div>
-                    <p className="text-xs font-medium text-gray-700 mt-1">{getQuartoTipoDisplay(r)}</p>
-                    <p className="text-xs text-gray-500">{r.andar}º andar · {r.capacidade} pess.</p>
+                    <p className="text-xs font-medium text-gray-700 mt-1">{r.andar}º andar · Até {r.capacidade} pess.</p>
+                    {r.descricao && <p className="text-[11px] text-gray-500 truncate mt-0.5">{r.descricao}</p>}
                   </button>
                 ))}
               </div>
@@ -358,6 +353,82 @@ export default function NovaHospedagemPage() {
         {step === 3 && (
           <div className="space-y-4">
             <h2 className="section-title">Detalhes da Hospedagem</h2>
+
+            {/* Room Type / Accommodation Selection */}
+            <div className="space-y-3 bg-gray-50/80 p-4 rounded-xl border border-gray-200">
+              <div>
+                <label className="text-sm font-semibold text-gray-800 block">Tipo de Acomodação Desejada</label>
+                <p className="text-xs text-gray-500 mt-0.5">Defina o tipo de quarto que o hóspede escolheu para esta estadia:</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setTipoAcomodacao('SIMPLES')}
+                  className={[
+                    'p-3 rounded-xl border text-left transition-all',
+                    tipoAcomodacao === 'SIMPLES'
+                      ? 'border-primary-500 bg-primary-50 ring-2 ring-primary-200 text-primary-900 font-semibold'
+                      : 'border-gray-200 hover:border-gray-300 bg-white text-gray-700'
+                  ].join(' ')}
+                >
+                  <div className="text-sm font-bold flex items-center justify-between">
+                    <span>Quarto Simples</span>
+                    {tipoAcomodacao === 'SIMPLES' && <span className="text-xs text-primary-600 font-bold">✓</span>}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">Com ou sem ar condicionado</p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => { setTipoAcomodacao('COMPLETO'); setTemArCondicionado(false) }}
+                  className={[
+                    'p-3 rounded-xl border text-left transition-all',
+                    tipoAcomodacao === 'COMPLETO'
+                      ? 'border-primary-500 bg-primary-50 ring-2 ring-primary-200 text-primary-900 font-semibold'
+                      : 'border-gray-200 hover:border-gray-300 bg-white text-gray-700'
+                  ].join(' ')}
+                >
+                  <div className="text-sm font-bold flex items-center justify-between">
+                    <span>Quarto Completo</span>
+                    {tipoAcomodacao === 'COMPLETO' && <span className="text-xs text-primary-600 font-bold">✓</span>}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">Suíte completa equipada</p>
+                </button>
+              </div>
+
+              {/* Conditional AC field for Simples */}
+              {tipoAcomodacao === 'SIMPLES' && (
+                <div className="pt-2 border-t border-gray-200/60">
+                  <label className="text-xs font-semibold text-gray-700 block mb-2">Ar Condicionado:</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setTemArCondicionado(false)}
+                      className={[
+                        'p-2.5 rounded-lg border text-center text-xs transition-all font-medium',
+                        !temArCondicionado
+                          ? 'border-blue-500 bg-blue-50 text-blue-900 font-bold ring-1 ring-blue-300'
+                          : 'border-gray-200 hover:border-gray-300 bg-white text-gray-600'
+                      ].join(' ')}
+                    >
+                      Sem Ar Condicionado
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTemArCondicionado(true)}
+                      className={[
+                        'p-2.5 rounded-lg border text-center text-xs transition-all font-medium',
+                        temArCondicionado
+                          ? 'border-blue-500 bg-blue-50 text-blue-900 font-bold ring-1 ring-blue-300'
+                          : 'border-gray-200 hover:border-gray-300 bg-white text-gray-600'
+                      ].join(' ')}
+                    >
+                      ❄️ Com Ar Condicionado
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
 
             <div className="grid grid-cols-2 gap-4">
               <DatePicker
@@ -406,7 +477,13 @@ export default function NovaHospedagemPage() {
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Quarto</span>
                   <span className="font-medium">
-                    Quarto {selectedQuarto.numero} · {getQuartoTipoDisplay(selectedQuarto)} ({selectedQuarto.predio === 'ANEXO' ? 'Anexo' : 'Hotel'})
+                    Quarto {selectedQuarto.numero} ({selectedQuarto.predio === 'ANEXO' ? 'Anexo' : 'Hotel'})
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Tipo de Acomodação</span>
+                  <span className="font-medium text-primary-700">
+                    {getAcomodacaoDisplay(tipoAcomodacao, temArCondicionado)}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
