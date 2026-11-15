@@ -56,7 +56,7 @@ export default function HospedagensPage() {
           </span>
         </span>
         <div className="text-[11px] text-primary-700 font-medium">
-          {row.tipo === 'COMPLETO' ? 'Completo' : (row.temArCondicionado ? 'Simples c/ Ar' : 'Simples s/ Ar')}
+          {row.tipo === 'SUITE_PREMIUM' ? 'Suíte Premium' : (row.tipo === 'COMPLETO' ? 'Completo' : (row.temArCondicionado ? 'Simples c/ Ar' : 'Simples s/ Ar'))}
         </div>
       </div>
     ) },

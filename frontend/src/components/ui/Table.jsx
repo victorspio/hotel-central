@@ -75,7 +75,7 @@ export default function Table({
 
       {/* Pagination */}
       {pagination && (
-        <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 text-sm text-gray-500">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3.5 border-t border-gray-100 text-sm text-gray-500">
           <span>
             Exibindo{' '}
             <strong className="text-gray-800">
@@ -87,7 +87,7 @@ export default function Table({
             </strong>{' '}
             de <strong className="text-gray-800">{pagination.total}</strong>
           </span>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 sm:pr-24">
             <button
               onClick={() => onPageChange?.(pagination.page - 1)}
               disabled={pagination.page <= 1}

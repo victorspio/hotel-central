@@ -229,7 +229,7 @@ export default function Layout() {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6 scrollbar-thin">
+        <main className="flex-1 overflow-y-auto p-4 lg:p-6 pb-24 lg:pb-32 scrollbar-thin">
           <Outlet />
         </main>
       </div>

@@ -6,5 +6,7 @@ const { authenticate, requireAdmin } = require('../middleware/auth');
 router.get('/', authenticate, tarifasController.listar);
 router.get('/por-tipo/:tipo', authenticate, tarifasController.buscarPorTipo);
 router.put('/:id', authenticate, requireAdmin, tarifasController.atualizar);
+router.put('/', authenticate, requireAdmin, tarifasController.atualizar);
+router.post('/', authenticate, requireAdmin, tarifasController.atualizar);
 
 module.exports = router;

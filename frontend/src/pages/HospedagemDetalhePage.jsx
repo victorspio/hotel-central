@@ -32,7 +32,7 @@ const categoriaOptions = [
 ]
 
 const emptyConsumo = { descricao: '', categoria: 'ALIMENTACAO', valor: '', data: '' }
-const emptyCheckout = { formaPagamento: 'PIX' }
+const emptyCheckout = { formaPagamento: '' }
 
 function InfoCard({ label, value, sub }) {
   return (
@@ -74,9 +74,10 @@ export default function HospedagemDetalhePage() {
   const dias = hosp?._diasProvisorio || calcDias(hosp?.dataEntrada, hosp?.dataSaida || hosp?.previsaoSaida)
   const numHospedes = hosp?.numHospedes || 1
   const valorPorPessoa = hosp?._valorPorPessoa || (hosp?.quarto?.valorDiaria ? hosp.quarto.valorDiaria / numHospedes : 0)
+  const valorDiaria = hosp?._valorDiaria || (valorPorPessoa * numHospedes)
   const totalDiarias = hosp?._totalProvisorio != null
     ? (hosp._totalProvisorio - (hosp.totalConsumos || 0))
-    : (dias * valorPorPessoa * numHospedes)
+    : (dias * valorDiaria)
   const totalConsumos = hosp?.totalConsumos != null ? hosp.totalConsumos : consumos.reduce((s, c) => s + (c.valor || 0), 0)
   const totalGeral = hosp?.valorTotal != null ? hosp.valorTotal : (totalDiarias + totalConsumos)
 
@@ -115,6 +116,7 @@ export default function HospedagemDetalhePage() {
   }
 
   const handleCheckout = async () => {
+    if (!checkoutForm.formaPagamento) return toast.error('Selecione a forma de pagamento.')
     setSavingCheckout(true)
     try {
       await hospedagensApi.checkout(id, {
@@ -159,7 +161,7 @@ export default function HospedagemDetalhePage() {
               {hosp.quarto?.predio === 'ANEXO' ? 'Anexo' : 'Hotel'}
             </span>
             <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
-              {hosp.tipo === 'COMPLETO' ? 'Quarto Completo' : (hosp.temArCondicionado ? 'Simples (Com Ar)' : 'Simples (Sem Ar)')}
+              {hosp.tipo === 'SUITE_PREMIUM' ? '👑 Suíte Premium' : (hosp.tipo === 'COMPLETO' ? 'Quarto Completo' : (hosp.temArCondicionado ? 'Simples (Com Ar)' : 'Simples (Sem Ar)'))}
             </span>
             <Badge color={statusColorMap[hosp.status] || 'gray'} className="text-sm px-3 py-1">
               {statusLabelMap[hosp.status] || hosp.status}
@@ -183,7 +185,7 @@ export default function HospedagemDetalhePage() {
         <InfoCard
           label="Diárias"
           value={`${dias} dia(s)`}
-          sub={valorPorPessoa ? `${formatCurrency(valorPorPessoa)}/pessoa/dia` : undefined}
+          sub={valorDiaria ? `${formatCurrency(valorDiaria)}/diária` : undefined}
         />
         <InfoCard label="Total diárias" value={formatCurrency(totalDiarias)} />
         <InfoCard label="Total consumos" value={formatCurrency(totalConsumos)} />
@@ -274,7 +276,7 @@ export default function HospedagemDetalhePage() {
             required
             value={consumoForm.descricao}
             onChange={(e) => setConsumoForm((f) => ({ ...f, descricao: e.target.value }))}
-            placeholder="Ex: Frigobar, restaurante..."
+            placeholder="Ex: Água mineral, refrigerante, lavanderia..."
           />
           <Select
             label="Categoria"
@@ -290,7 +292,7 @@ export default function HospedagemDetalhePage() {
             required
             value={consumoForm.valor}
             onChange={(e) => setConsumoForm((f) => ({ ...f, valor: e.target.value }))}
-            placeholder="0,00"
+            placeholder="Ex: 15,00"
           />
           <DatePicker
             label="Data"
@@ -320,7 +322,7 @@ export default function HospedagemDetalhePage() {
           <div className="bg-gray-50 rounded-xl p-4 space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">
-                {dias} diária(s) × {numHospedes} hósp. {valorPorPessoa ? `× ${formatCurrency(valorPorPessoa)}` : ''}
+                {dias} diária(s) ({formatCurrency(valorDiaria)}/dia - {numHospedes} {numHospedes === 1 ? 'hóspede' : 'hóspedes'})
               </span>
               <span className="font-medium">{formatCurrency(totalDiarias)}</span>
             </div>
@@ -339,6 +341,7 @@ export default function HospedagemDetalhePage() {
           <Select
             label="Forma de Pagamento"
             required
+            placeholder="Selecione a forma de pagamento (Ex: PIX)"
             options={pgtoOptions}
             value={checkoutForm.formaPagamento}
             onChange={(e) => setCheckoutForm((f) => ({ ...f, formaPagamento: e.target.value }))}

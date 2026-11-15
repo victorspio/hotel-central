@@ -74,7 +74,7 @@ export function CPFInput({ value, onChange, ...props }) {
     <Input
       value={value}
       onChange={handleChange}
-      placeholder="000.000.000-00"
+      placeholder="Ex: 000.000.000-00"
       maxLength={14}
       {...props}
     />
@@ -91,7 +91,7 @@ export function PhoneInput({ value, onChange, ...props }) {
     <Input
       value={value}
       onChange={handleChange}
-      placeholder="(00) 00000-0000"
+      placeholder="Ex: (11) 98765-4321"
       maxLength={15}
       {...props}
     />

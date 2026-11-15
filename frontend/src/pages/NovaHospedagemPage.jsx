@@ -25,8 +25,9 @@ const tipoLabel = {
 }
 
 function getAcomodacaoDisplay(tipo, temAr) {
+  if (tipo === 'SUITE_PREMIUM') return 'Suíte Premium'
   if (tipo === 'COMPLETO') return 'Quarto Completo'
-  return temAr ? 'Simples (Com Ar)' : 'Simples (Sem Ar)'
+  return 'Quarto Simples (Sem Ar)'
 }
 
 function StepIndicator({ current }) {
@@ -70,7 +71,7 @@ export default function NovaHospedagemPage() {
   const [form, setForm] = useState({
     dataEntrada: format(new Date(), 'yyyy-MM-dd'),
     previsaoSaida: '',
-    numHospedes: '1',
+    numHospedes: '',
     observacoes: ''
   })
   const [saving, setSaving] = useState(false)
@@ -142,20 +143,48 @@ export default function NovaHospedagemPage() {
   })()
 
   const selectedPredio = selectedQuarto?.predio || 'CENTRAL'
-  const tipoTarifaKey = tipoAcomodacao === 'COMPLETO'
-    ? 'COMPLETO'
-    : (temArCondicionado ? 'SIMPLES_COM_AR' : 'SIMPLES_SEM_AR')
+  const isAnexo = selectedPredio === 'ANEXO'
+
+  const tipoTarifaKey = isAnexo
+    ? (tipoAcomodacao === 'SUITE_PREMIUM' ? 'SUITE_PREMIUM' : 'COMPLETO')
+    : (tipoAcomodacao === 'COMPLETO' ? 'COMPLETO' : 'SIMPLES_SEM_AR')
+
   const tarifaQuarto = tarifas.find(
     (t) => (t.predio || 'CENTRAL') === selectedPredio && t.tipo === tipoTarifaKey
   )
-  const valorPorPessoa = tarifaQuarto ? tarifaQuarto.valorPorPessoa : 0
   const numHospedes = parseInt(form.numHospedes) || 1
-  const estimatedTotal = selectedQuarto ? estimatedDias * valorPorPessoa * numHospedes : 0
+
+  const diariaTotal = (() => {
+    if (!tarifaQuarto) return 0
+    let valores = tarifaQuarto.valoresPorPessoa
+    if (!valores && tarifaQuarto.descricao) {
+      try {
+        const p = JSON.parse(tarifaQuarto.descricao)
+        valores = p?.valoresPorPessoa || p
+      } catch {}
+    }
+    if (valores && valores[String(numHospedes)] && Number(valores[String(numHospedes)]) > 0) {
+      return Number(valores[String(numHospedes)])
+    }
+    if (valores && valores['1'] && Number(valores['1']) > 0) {
+      for (let i = numHospedes - 1; i >= 1; i--) {
+        if (valores[String(i)] && Number(valores[String(i)]) > 0) {
+          return Number(valores[String(i)]) + ((numHospedes - i) * (Number(valores['1']) * 0.5))
+        }
+      }
+      return Number(valores['1']) * numHospedes
+    }
+    return (tarifaQuarto.valorPorPessoa || 0) * numHospedes
+  })()
+
+  const valorPorPessoa = diariaTotal / numHospedes
+  const estimatedTotal = selectedQuarto ? estimatedDias * diariaTotal : 0
 
   const handleSubmit = async () => {
     if (!selectedCliente) return toast.error('Selecione um cliente.')
     if (!selectedQuarto) return toast.error('Selecione um quarto.')
     if (!form.previsaoSaida) return toast.error('Informe a previsão de saída.')
+    if (!form.numHospedes) return toast.error('Selecione a quantidade de hóspedes.')
 
     setSaving(true)
     try {
@@ -166,7 +195,8 @@ export default function NovaHospedagemPage() {
         previsaoSaida: form.previsaoSaida,
         numHospedes: parseInt(form.numHospedes),
         tipo: tipoAcomodacao,
-        temArCondicionado: tipoAcomodacao === 'SIMPLES' ? temArCondicionado : false,
+        tipoTarifa: tipoTarifaKey,
+        temArCondicionado: false,
         observacoes: form.observacoes
       })
       const created = res.data?.hospedagem || res.data
@@ -200,7 +230,7 @@ export default function NovaHospedagemPage() {
               <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 className="form-input pl-9"
-                placeholder="Buscar por nome, CPF ou e-mail..."
+                placeholder="Buscar por nome, CPF ou e-mail (Ex: Carlos Silva)..."
                 value={clienteSearch}
                 onChange={(e) => setClienteSearch(e.target.value)}
                 autoFocus
@@ -319,7 +349,18 @@ export default function NovaHospedagemPage() {
                 {filteredRooms.map((r) => (
                   <button
                     key={r.id}
-                    onClick={() => setSelectedQuarto(r)}
+                    onClick={() => {
+                      setSelectedQuarto(r)
+                      if (r.predio === 'ANEXO') {
+                        if (tipoAcomodacao !== 'SUITE_PREMIUM' && tipoAcomodacao !== 'COMPLETO') {
+                          setTipoAcomodacao('COMPLETO')
+                        }
+                      } else {
+                        if (tipoAcomodacao !== 'SIMPLES' && tipoAcomodacao !== 'COMPLETO') {
+                          setTipoAcomodacao('SIMPLES')
+                        }
+                      }
+                    }}
                     className={[
                       'p-3 rounded-xl border-2 text-left transition-all relative',
                       selectedQuarto?.id === r.id
@@ -357,77 +398,86 @@ export default function NovaHospedagemPage() {
             {/* Room Type / Accommodation Selection */}
             <div className="space-y-3 bg-gray-50/80 p-4 rounded-xl border border-gray-200">
               <div>
-                <label className="text-sm font-semibold text-gray-800 block">Tipo de Acomodação Desejada</label>
-                <p className="text-xs text-gray-500 mt-0.5">Defina o tipo de quarto que o hóspede escolheu para esta estadia:</p>
+                <label className="text-sm font-semibold text-gray-800 block">Tipo de Acomodação</label>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {isAnexo ? 'Opções disponíveis para o Anexo:' : 'Opções disponíveis para o Hotel:'}
+                </p>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setTipoAcomodacao('SIMPLES')}
-                  className={[
-                    'p-3 rounded-xl border text-left transition-all',
-                    tipoAcomodacao === 'SIMPLES'
-                      ? 'border-primary-500 bg-primary-50 ring-2 ring-primary-200 text-primary-900 font-semibold'
-                      : 'border-gray-200 hover:border-gray-300 bg-white text-gray-700'
-                  ].join(' ')}
-                >
-                  <div className="text-sm font-bold flex items-center justify-between">
-                    <span>Quarto Simples</span>
-                    {tipoAcomodacao === 'SIMPLES' && <span className="text-xs text-primary-600 font-bold">✓</span>}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">Com ou sem ar condicionado</p>
-                </button>
+                {isAnexo ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setTipoAcomodacao('COMPLETO')}
+                      className={[
+                        'p-3 rounded-xl border text-left transition-all',
+                        tipoAcomodacao === 'COMPLETO'
+                          ? 'border-primary-500 bg-primary-50 ring-2 ring-primary-200 text-primary-900 font-semibold'
+                          : 'border-gray-200 hover:border-gray-300 bg-white text-gray-700'
+                      ].join(' ')}
+                    >
+                      <div className="text-sm font-bold flex items-center justify-between">
+                        <span>Quarto Completo</span>
+                        {tipoAcomodacao === 'COMPLETO' && <span className="text-xs text-primary-600 font-bold">✓</span>}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">Quarto com ar condicionado no Anexo</p>
+                    </button>
 
-                <button
-                  type="button"
-                  onClick={() => { setTipoAcomodacao('COMPLETO'); setTemArCondicionado(false) }}
-                  className={[
-                    'p-3 rounded-xl border text-left transition-all',
-                    tipoAcomodacao === 'COMPLETO'
-                      ? 'border-primary-500 bg-primary-50 ring-2 ring-primary-200 text-primary-900 font-semibold'
-                      : 'border-gray-200 hover:border-gray-300 bg-white text-gray-700'
-                  ].join(' ')}
-                >
-                  <div className="text-sm font-bold flex items-center justify-between">
-                    <span>Quarto Completo</span>
-                    {tipoAcomodacao === 'COMPLETO' && <span className="text-xs text-primary-600 font-bold">✓</span>}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">Suíte completa equipada</p>
-                </button>
+                    <button
+                      type="button"
+                      onClick={() => setTipoAcomodacao('SUITE_PREMIUM')}
+                      className={[
+                        'p-3 rounded-xl border text-left transition-all',
+                        tipoAcomodacao === 'SUITE_PREMIUM'
+                          ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200 text-purple-900 font-semibold'
+                          : 'border-gray-200 hover:border-gray-300 bg-white text-gray-700'
+                      ].join(' ')}
+                    >
+                      <div className="text-sm font-bold flex items-center justify-between">
+                        <span>👑 Suíte Premium</span>
+                        {tipoAcomodacao === 'SUITE_PREMIUM' && <span className="text-xs text-purple-600 font-bold">✓</span>}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">Suíte premium exclusiva no Anexo</p>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setTipoAcomodacao('SIMPLES')}
+                      className={[
+                        'p-3 rounded-xl border text-left transition-all',
+                        tipoAcomodacao === 'SIMPLES'
+                          ? 'border-primary-500 bg-primary-50 ring-2 ring-primary-200 text-primary-900 font-semibold'
+                          : 'border-gray-200 hover:border-gray-300 bg-white text-gray-700'
+                      ].join(' ')}
+                    >
+                      <div className="text-sm font-bold flex items-center justify-between">
+                        <span>Quarto Simples</span>
+                        {tipoAcomodacao === 'SIMPLES' && <span className="text-xs text-primary-600 font-bold">✓</span>}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">Sem ar condicionado no Hotel</p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setTipoAcomodacao('COMPLETO')}
+                      className={[
+                        'p-3 rounded-xl border text-left transition-all',
+                        tipoAcomodacao === 'COMPLETO'
+                          ? 'border-primary-500 bg-primary-50 ring-2 ring-primary-200 text-primary-900 font-semibold'
+                          : 'border-gray-200 hover:border-gray-300 bg-white text-gray-700'
+                      ].join(' ')}
+                    >
+                      <div className="text-sm font-bold flex items-center justify-between">
+                        <span>Quarto Completo</span>
+                        {tipoAcomodacao === 'COMPLETO' && <span className="text-xs text-primary-600 font-bold">✓</span>}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">Com ar condicionado no Hotel</p>
+                    </button>
+                  </>
+                )}
               </div>
-
-              {/* Conditional AC field for Simples */}
-              {tipoAcomodacao === 'SIMPLES' && (
-                <div className="pt-2 border-t border-gray-200/60">
-                  <label className="text-xs font-semibold text-gray-700 block mb-2">Ar Condicionado:</label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setTemArCondicionado(false)}
-                      className={[
-                        'p-2.5 rounded-lg border text-center text-xs transition-all font-medium',
-                        !temArCondicionado
-                          ? 'border-blue-500 bg-blue-50 text-blue-900 font-bold ring-1 ring-blue-300'
-                          : 'border-gray-200 hover:border-gray-300 bg-white text-gray-600'
-                      ].join(' ')}
-                    >
-                      Sem Ar Condicionado
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setTemArCondicionado(true)}
-                      className={[
-                        'p-2.5 rounded-lg border text-center text-xs transition-all font-medium',
-                        temArCondicionado
-                          ? 'border-blue-500 bg-blue-50 text-blue-900 font-bold ring-1 ring-blue-300'
-                          : 'border-gray-200 hover:border-gray-300 bg-white text-gray-600'
-                      ].join(' ')}
-                    >
-                      ❄️ Com Ar Condicionado
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -450,6 +500,7 @@ export default function NovaHospedagemPage() {
               label="Quantidade de Hóspedes"
               id="hospedes-select"
               name="guest_quantity_select"
+              placeholder="Selecione a quantidade (Ex: 2 hóspedes)"
               value={form.numHospedes}
               onChange={(e) => setForm((f) => ({ ...f, numHospedes: e.target.value }))}
               options={Array.from({ length: Math.max(1, selectedQuarto?.capacidade || 4) }, (_, i) => ({
@@ -463,7 +514,7 @@ export default function NovaHospedagemPage() {
               value={form.observacoes}
               onChange={(e) => setForm((f) => ({ ...f, observacoes: e.target.value }))}
               rows={2}
-              placeholder="Pedidos especiais, anotações..."
+              placeholder="Ex: Cama extra, check-out tardio, pedidos especiais..."
             />
 
             {/* Summary */}
@@ -487,8 +538,15 @@ export default function NovaHospedagemPage() {
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Tarifa por pessoa</span>
-                  <span className="font-medium">{formatCurrency(valorPorPessoa)} / pessoa / noite</span>
+                  <span className="text-gray-500">Valor da diária</span>
+                  <span className="font-medium">
+                    {formatCurrency(diariaTotal)} / diária
+                    {numHospedes > 1 && (
+                      <span className="text-xs text-gray-500 font-normal ml-1">
+                        ({formatCurrency(valorPorPessoa)} / pessoa)
+                      </span>
+                    )}
+                  </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Hóspedes</span>
@@ -501,7 +559,7 @@ export default function NovaHospedagemPage() {
                 <div className="border-t border-gray-200 pt-2 flex justify-between items-baseline">
                   <div>
                     <span className="font-semibold text-gray-800 block">Total estimado</span>
-                    <span className="text-[11px] text-gray-400">({estimatedDias} diárias × {numHospedes} hóspedes × {formatCurrency(valorPorPessoa)})</span>
+                    <span className="text-[11px] text-gray-400">({estimatedDias} diárias × {formatCurrency(diariaTotal)})</span>
                   </div>
                   <span className="font-bold text-primary-700 text-lg">{formatCurrency(estimatedTotal)}</span>
                 </div>

@@ -430,8 +430,8 @@ export default function FinanceiroPage() {
         <div className="grid grid-cols-2 gap-4">
           <Select label="Tipo" options={[{ value: 'RECEITA', label: 'Receita' }, { value: 'DESPESA', label: 'Despesa' }]} value={lancForm.tipo} onChange={(e) => setLancForm((f) => ({ ...f, tipo: e.target.value }))} />
           <Select label="Categoria" options={categoriaOptions} value={lancForm.categoria} onChange={(e) => setLancForm((f) => ({ ...f, categoria: e.target.value }))} />
-          <Input label="Descrição" required value={lancForm.descricao} onChange={(e) => setLancForm((f) => ({ ...f, descricao: e.target.value }))} containerClassName="col-span-2" />
-          <Input label="Valor (R$)" type="number" min="0" step="0.01" required value={lancForm.valor} onChange={(e) => setLancForm((f) => ({ ...f, valor: e.target.value }))} placeholder="0,00" />
+          <Input label="Descrição" required value={lancForm.descricao} onChange={(e) => setLancForm((f) => ({ ...f, descricao: e.target.value }))} containerClassName="col-span-2" placeholder="Ex: Conta de luz, Pagamento fornecedor, Diária avulsa..." />
+          <Input label="Valor (R$)" type="number" min="0" step="0.01" required value={lancForm.valor} onChange={(e) => setLancForm((f) => ({ ...f, valor: e.target.value }))} placeholder="Ex: 150,00" />
           <DatePicker
             label="Data"
             required
@@ -440,7 +440,7 @@ export default function FinanceiroPage() {
           />
           <Select label="Forma Pagamento" options={pgtoOptions} value={lancForm.formaPagamento} onChange={(e) => setLancForm((f) => ({ ...f, formaPagamento: e.target.value }))} />
           <Select label="Status" options={[{ value: 'PAGO', label: 'Pago' }, { value: 'PENDENTE', label: 'Pendente' }]} value={lancForm.status} onChange={(e) => setLancForm((f) => ({ ...f, status: e.target.value }))} />
-          <Textarea label="Observações" value={lancForm.observacoes} onChange={(e) => setLancForm((f) => ({ ...f, observacoes: e.target.value }))} containerClassName="col-span-2" rows={2} />
+          <Textarea label="Observações" value={lancForm.observacoes} onChange={(e) => setLancForm((f) => ({ ...f, observacoes: e.target.value }))} containerClassName="col-span-2" rows={2} placeholder="Ex: Pago com desconto, nota fiscal nº 1234..." />
         </div>
       </Modal>
 

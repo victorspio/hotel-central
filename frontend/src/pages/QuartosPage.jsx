@@ -31,7 +31,7 @@ const statusColorMap = {
 }
 
 const emptyForm = {
-  numero: '', predio: 'CENTRAL', capacidade: '2', andar: '1',
+  numero: '', predio: 'CENTRAL', capacidade: '', andar: '',
   status: 'LIVRE', descricao: ''
 }
 
@@ -95,8 +95,8 @@ export default function QuartosPage() {
     setForm({
       numero: q.numero || '',
       predio: q.predio || 'CENTRAL',
-      capacidade: String(q.capacidade || 2),
-      andar: String(q.andar || 1),
+      capacidade: q.capacidade !== undefined && q.capacidade !== null ? String(q.capacidade) : '',
+      andar: q.andar !== undefined && q.andar !== null ? String(q.andar) : '',
       status: q.status || 'LIVRE',
       descricao: q.descricao || ''
     })
@@ -113,6 +113,8 @@ export default function QuartosPage() {
 
   const handleSave = async () => {
     if (!form.numero) return toast.error('Número do quarto é obrigatório.')
+    if (!form.capacidade) return toast.error('Informe a capacidade máxima de pessoas.')
+    if (!form.andar) return toast.error('Informe o andar do quarto.')
     setSaving(true)
     try {
       const payload = {

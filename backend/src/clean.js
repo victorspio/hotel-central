@@ -24,17 +24,15 @@ async function clean() {
   await prisma.tarifaQuarto.deleteMany();
   await prisma.tarifaQuarto.createMany({
     data: [
-      // Hotel (Central)
-      { predio: 'CENTRAL', tipo: 'SIMPLES_SEM_AR', nome: 'Hotel - Simples Sem Ar', valorPorPessoa: 0, descricao: 'Hotel: Quarto simples sem ar condicionado' },
-      { predio: 'CENTRAL', tipo: 'SIMPLES_COM_AR', nome: 'Hotel - Simples Com Ar', valorPorPessoa: 0, descricao: 'Hotel: Quarto simples com ar condicionado' },
-      { predio: 'CENTRAL', tipo: 'COMPLETO', nome: 'Hotel - Completo', valorPorPessoa: 0, descricao: 'Hotel: Quarto completo' },
+      // Hotel
+      { predio: 'CENTRAL', tipo: 'SIMPLES_SEM_AR', nome: 'Hotel - Quarto Simples', valorPorPessoa: 0, descricao: 'Hotel: Quarto simples (sem ar)' },
+      { predio: 'CENTRAL', tipo: 'COMPLETO', nome: 'Hotel - Quarto Completo', valorPorPessoa: 0, descricao: 'Hotel: Quarto completo' },
       // Anexo
-      { predio: 'ANEXO', tipo: 'SIMPLES_SEM_AR', nome: 'Anexo - Simples Sem Ar', valorPorPessoa: 0, descricao: 'Anexo: Quarto simples sem ar condicionado' },
-      { predio: 'ANEXO', tipo: 'SIMPLES_COM_AR', nome: 'Anexo - Simples Com Ar', valorPorPessoa: 0, descricao: 'Anexo: Quarto simples com ar condicionado' },
-      { predio: 'ANEXO', tipo: 'COMPLETO', nome: 'Anexo - Completo', valorPorPessoa: 0, descricao: 'Anexo: Quarto completo' },
+      { predio: 'ANEXO', tipo: 'COMPLETO', nome: 'Anexo - Quarto Completo', valorPorPessoa: 0, descricao: 'Anexo: Quarto completo' },
+      { predio: 'ANEXO', tipo: 'SUITE_PREMIUM', nome: 'Anexo - Suíte Premium', valorPorPessoa: 0, descricao: 'Anexo: Suíte Premium' },
     ],
   });
-  console.log('   ✅ 6 Tarifas zeradas (3 para Hotel e 3 para Anexo).');
+  console.log('   ✅ Tarifas configuradas (Hotel: Simples e Completo; Anexo: Completo e Suíte Premium).');
 
   // Recriar os usuários padrões de login
   await prisma.user.deleteMany();

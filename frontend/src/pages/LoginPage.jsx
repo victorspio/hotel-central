@@ -89,7 +89,7 @@ export default function LoginPage() {
               type="email"
               value={form.email}
               onChange={handleChange}
-              placeholder="seu@email.com"
+              placeholder="Ex: admin@hotel.com"
               autoComplete="username"
               required
               disabled={loading}
@@ -106,7 +106,7 @@ export default function LoginPage() {
                   type={showPassword ? 'text' : 'password'}
                   value={form.senha}
                   onChange={handleChange}
-                  placeholder="••••••••"
+                  placeholder="Ex: Digite sua senha"
                   autoComplete="current-password"
                   required
                   disabled={loading}

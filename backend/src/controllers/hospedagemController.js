@@ -1,9 +1,11 @@
 const prisma = require('../lib/prisma');
+const { getDiariaTarifa } = require('./tarifasController');
 
 /**
  * Determines the tariff type based on quarto properties.
  */
 function getTipoTarifa(quarto) {
+  if (quarto.tipo === 'SUITE_PREMIUM') return 'SUITE_PREMIUM';
   if (quarto.tipo === 'COMPLETO') return 'COMPLETO';
   if (quarto.tipo === 'SIMPLES' && quarto.temArCondicionado) return 'SIMPLES_COM_AR';
   return 'SIMPLES_SEM_AR';
@@ -75,8 +77,10 @@ const buscar = async (req, res, next) => {
       const tipoTarifa = hospedagem.tipoTarifa || getTipoTarifa(hospedagem.quarto);
       const predio = hospedagem.quarto?.predio || 'CENTRAL';
       const tarifa = await prisma.tarifaQuarto.findFirst({ where: { tipo: tipoTarifa, predio } });
-      const valorPorPessoa = tarifa ? tarifa.valorPorPessoa : (hospedagem.valorDiariaPessoa || hospedagem.quarto?.valorDiaria || 0);
-      hospedagem._totalProvisorio = dias * valorPorPessoa * hospedagem.numHospedes + totalConsumos;
+      const diariaTotal = getDiariaTarifa(tarifa, hospedagem.numHospedes, hospedagem.valorDiariaPessoa || (hospedagem.quarto?.valorDiaria ? hospedagem.quarto.valorDiaria / hospedagem.numHospedes : 0));
+      const valorPorPessoa = diariaTotal / (hospedagem.numHospedes || 1);
+      hospedagem._totalProvisorio = dias * diariaTotal + totalConsumos;
+      hospedagem._valorDiaria = diariaTotal;
       hospedagem._valorPorPessoa = valorPorPessoa;
       hospedagem._diasProvisorio = dias;
     }
@@ -128,15 +132,23 @@ const criar = async (req, res, next) => {
       return res.status(409).json({ error: 'Quarto já possui reserva no período informado' });
     }
 
-    const tipoHospedagem = (tipo && ['SIMPLES', 'COMPLETO'].includes(String(tipo).toUpperCase())) ? String(tipo).toUpperCase() : 'SIMPLES';
+    const tipoUpper = String(tipo || '').toUpperCase();
+    const tipoHospedagem = ['SIMPLES', 'COMPLETO', 'SUITE_PREMIUM'].includes(tipoUpper) ? tipoUpper : 'SIMPLES';
     const arCondicionado = tipoHospedagem === 'SIMPLES' ? Boolean(temArCondicionado) : false;
-    const tipoTarifa = tipoHospedagem === 'COMPLETO' ? 'COMPLETO' : (arCondicionado ? 'SIMPLES_COM_AR' : 'SIMPLES_SEM_AR');
+
+    let tipoTarifa = req.body.tipoTarifa;
+    if (!tipoTarifa) {
+      if (tipoHospedagem === 'SUITE_PREMIUM') tipoTarifa = 'SUITE_PREMIUM';
+      else if (tipoHospedagem === 'COMPLETO') tipoTarifa = 'COMPLETO';
+      else tipoTarifa = arCondicionado ? 'SIMPLES_COM_AR' : 'SIMPLES_SEM_AR';
+    }
     const predio = quarto.predio || 'CENTRAL';
 
     const tarifa = await prisma.tarifaQuarto.findFirst({
       where: { tipo: tipoTarifa, predio }
     });
-    const valorDiariaPessoa = tarifa ? tarifa.valorPorPessoa : (quarto.valorDiaria || 0);
+    const diariaTotal = getDiariaTarifa(tarifa, numHospedes, quarto.valorDiaria ? quarto.valorDiaria / (Number(numHospedes) || 1) : 0);
+    const valorDiariaPessoa = diariaTotal / (Number(numHospedes) || 1);
 
     const hospedagem = await prisma.$transaction(async (tx) => {
       const h = await tx.hospedagem.create({
@@ -227,8 +239,8 @@ const checkout = async (req, res, next) => {
     const tipoTarifa = hospedagem.tipoTarifa || getTipoTarifa(hospedagem.quarto);
     const predio = hospedagem.quarto?.predio || 'CENTRAL';
     const tarifa = await prisma.tarifaQuarto.findFirst({ where: { tipo: tipoTarifa, predio } });
-    const valorPorPessoa = tarifa ? tarifa.valorPorPessoa : (hospedagem.valorDiariaPessoa || hospedagem.quarto?.valorDiaria || 0);
-    const totalDiarias = dias * valorPorPessoa * hospedagem.numHospedes;
+    const diariaTotal = getDiariaTarifa(tarifa, hospedagem.numHospedes, hospedagem.valorDiariaPessoa || (hospedagem.quarto?.valorDiaria ? hospedagem.quarto.valorDiaria / hospedagem.numHospedes : 0));
+    const totalDiarias = dias * diariaTotal;
     const totalConsumos = hospedagem.consumosExtras.reduce((sum, c) => sum + c.valor, 0);
     const valorTotal = totalDiarias + totalConsumos;
 

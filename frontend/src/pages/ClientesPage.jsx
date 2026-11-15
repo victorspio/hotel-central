@@ -38,7 +38,7 @@ function ClienteForm({ form, onChange, onSubmit }) {
           required
           value={form.nome}
           onChange={onChange('nome')}
-          placeholder="Nome do hóspede"
+          placeholder="Ex: Carlos Eduardo da Silva"
           containerClassName="sm:col-span-2"
         />
         <CPFInput
@@ -48,6 +48,7 @@ function ClienteForm({ form, onChange, onSubmit }) {
           label="CPF"
           value={form.cpf}
           onChange={onChange('cpf')}
+          placeholder="Ex: 123.456.789-00"
           required
         />
         <Input
@@ -57,7 +58,7 @@ function ClienteForm({ form, onChange, onSubmit }) {
           label="RG"
           value={form.rg}
           onChange={onChange('rg')}
-          placeholder="00.000.000-0"
+          placeholder="Ex: 12.345.678-9"
         />
         <DatePicker
           label="Data de Nascimento"
@@ -72,6 +73,7 @@ function ClienteForm({ form, onChange, onSubmit }) {
           label="Telefone"
           value={form.telefone}
           onChange={onChange('telefone')}
+          placeholder="Ex: (11) 98765-4321"
         />
         <Input
           id="cad-email"
@@ -81,7 +83,7 @@ function ClienteForm({ form, onChange, onSubmit }) {
           type="email"
           value={form.email}
           onChange={onChange('email')}
-          placeholder="email@exemplo.com"
+          placeholder="Ex: carlos.silva@email.com"
           containerClassName="sm:col-span-2"
         />
       </div>
@@ -96,27 +98,27 @@ function ClienteForm({ form, onChange, onSubmit }) {
             label="Logradouro"
             value={form.logradouro}
             onChange={onChange('logradouro')}
-            placeholder="Rua, Av..."
+            placeholder="Ex: Rua das Flores, Av. Brasil..."
             containerClassName="sm:col-span-2"
           />
-          <Input id="cad-numero" name="numero" autoComplete="address-line2" label="Número" value={form.numero} onChange={onChange('numero')} />
-          <Input id="cad-complemento" name="complemento" autoComplete="off" label="Complemento" value={form.complemento} onChange={onChange('complemento')} />
-          <Input id="cad-bairro" name="bairro" autoComplete="address-level3" label="Bairro" value={form.bairro} onChange={onChange('bairro')} />
-          <Input id="cad-cidade" name="cidade" autoComplete="address-level2" label="Cidade" value={form.cidade} onChange={onChange('cidade')} />
+          <Input id="cad-numero" name="numero" autoComplete="address-line2" label="Número" value={form.numero} onChange={onChange('numero')} placeholder="Ex: 120" />
+          <Input id="cad-complemento" name="complemento" autoComplete="off" label="Complemento" value={form.complemento} onChange={onChange('complemento')} placeholder="Ex: Apto 101, Bloco B" />
+          <Input id="cad-bairro" name="bairro" autoComplete="address-level3" label="Bairro" value={form.bairro} onChange={onChange('bairro')} placeholder="Ex: Centro" />
+          <Input id="cad-cidade" name="cidade" autoComplete="address-level2" label="Cidade" value={form.cidade} onChange={onChange('cidade')} placeholder="Ex: São Paulo" />
           <Select
             id="cad-estado"
             name="estado"
             label="Estado"
             value={form.estado}
             onChange={onChange('estado')}
-            placeholder="Selecione"
+            placeholder="Selecione o estado (Ex: SP)"
             options={ESTADOS_BR.map((e) => ({ value: e, label: e }))}
           />
-          <Input id="cad-cep" name="cep" autoComplete="postal-code" label="CEP" value={form.cep} onChange={onChange('cep')} placeholder="00000-000" />
+          <Input id="cad-cep" name="cep" autoComplete="postal-code" label="CEP" value={form.cep} onChange={onChange('cep')} placeholder="Ex: 01310-100" />
         </div>
       </div>
 
-      <Textarea id="cad-observacoes" name="observacoes" label="Observações" value={form.observacoes} onChange={onChange('observacoes')} rows={2} />
+      <Textarea id="cad-observacoes" name="observacoes" label="Observações" value={form.observacoes} onChange={onChange('observacoes')} rows={2} placeholder="Ex: Hóspede frequente, prefere quartos silenciosos..." />
     </form>
   )
 }
@@ -334,7 +336,7 @@ export default function ClientesPage() {
             data-lpignore="true"
             data-form-type="other"
             className="w-full pl-9 pr-4 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-            placeholder="Buscar por nome ou documento..."
+            placeholder="Buscar por nome ou documento (Ex: Carlos Silva ou 123.456)..."
             value={search}
             onChange={(e) => handleSearch(e.target.value)}
           />
