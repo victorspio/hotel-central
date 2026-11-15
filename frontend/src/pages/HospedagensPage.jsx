@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Eye, LogOut as CheckOutIcon } from 'lucide-react'
+import { Plus, Eye, LogOut as CheckOutIcon, Printer } from 'lucide-react'
 import { hospedagens as hospedagensApi } from '../services/api'
 import { formatDate, formatCurrency } from '../utils/formatters'
+import { gerarComprovanteHospedagem } from '../utils/comprovantePdf'
 import Button from '../components/ui/Button'
 import Select from '../components/ui/Select'
 import Table from '../components/ui/Table'
@@ -45,6 +46,41 @@ export default function HospedagensPage() {
 
   useEffect(() => { fetchList(1) }, [filters])
 
+  const handlePrintComprovante = async (e, row) => {
+    e.stopPropagation()
+    // Abre a aba imediatamente no clique do usuário para contornar o bloqueador de popup do Chrome
+    const targetWindow = window.open('about:blank', '_blank')
+    if (targetWindow) {
+      try {
+        targetWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+            <head><title>Carregando comprovante...</title></head>
+            <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f8fafc; color: #475569;">
+              <div style="text-align: center;">
+                <div style="width: 32px; height: 32px; border: 3px solid #cbd5e1; border-top-color: #2563eb; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px;"></div>
+                <div style="font-size: 15px; font-weight: 500;">Gerando comprovante de hospedagem...</div>
+              </div>
+              <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+            </body>
+          </html>
+        `)
+      } catch {
+        // ignore
+      }
+    }
+    try {
+      const res = await hospedagensApi.getOne(row.id)
+      const fullHosp = res.data?.hospedagem || res.data
+      await gerarComprovanteHospedagem(fullHosp, { targetWindow })
+    } catch {
+      if (targetWindow && !targetWindow.closed) {
+        targetWindow.close()
+      }
+      toast.error('Erro ao gerar comprovante.')
+    }
+  }
+
   const columns = [
     { key: 'cliente', label: 'Cliente', render: (v) => <span className="font-medium">{v?.nome || '-'}</span> },
     { key: 'quarto', label: 'Quarto', render: (v, row) => (
@@ -67,7 +103,7 @@ export default function HospedagensPage() {
     { key: 'status', label: 'Status', render: (v) => (
       <Badge color={statusColorMap[v] || 'gray'}>{statusLabelMap[v] || v}</Badge>
     )},
-    { key: 'id', label: 'Ações', width: '110px', render: (_, row) => (
+    { key: 'id', label: 'Ações', width: '130px', render: (_, row) => (
       <div className="flex items-center gap-1">
         <button
           onClick={() => navigate(`/hospedagens/${row.id}`)}
@@ -75,6 +111,13 @@ export default function HospedagensPage() {
           title="Ver detalhes"
         >
           <Eye size={15} />
+        </button>
+        <button
+          onClick={(e) => handlePrintComprovante(e, row)}
+          className="p-1.5 rounded text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+          title="Comprovante (PDF)"
+        >
+          <Printer size={15} />
         </button>
         {row.status === 'ATIVA' && (
           <button

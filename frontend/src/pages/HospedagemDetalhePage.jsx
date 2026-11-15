@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Plus, Trash2, CreditCard, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, CreditCard, AlertTriangle, Printer } from 'lucide-react'
 import { hospedagens as hospedagensApi } from '../services/api'
 import { formatDate, formatDateTime, formatCurrency, calcDias } from '../utils/formatters'
+import { gerarComprovanteHospedagem } from '../utils/comprovantePdf'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
 import { Textarea } from '../components/ui/Input'
@@ -133,6 +134,38 @@ export default function HospedagemDetalhePage() {
     }
   }
 
+  const handlePrintComprovante = () => {
+    const targetWindow = window.open('about:blank', '_blank')
+    if (targetWindow) {
+      try {
+        targetWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+            <head><title>Carregando comprovante...</title></head>
+            <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f8fafc; color: #475569;">
+              <div style="text-align: center;">
+                <div style="width: 32px; height: 32px; border: 3px solid #cbd5e1; border-top-color: #2563eb; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px;"></div>
+                <div style="font-size: 15px; font-weight: 500;">Gerando comprovante de hospedagem...</div>
+              </div>
+              <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+            </body>
+          </html>
+        `)
+      } catch {
+        // ignore
+      }
+    }
+    gerarComprovanteHospedagem(hosp, {
+      targetWindow,
+      dias,
+      valorPorPessoa,
+      valorDiaria,
+      totalDiarias,
+      totalConsumos,
+      totalGeral
+    })
+  }
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -169,11 +202,20 @@ export default function HospedagemDetalhePage() {
           </div>
           <p className="text-sm text-gray-500">{hosp.cliente?.nome}</p>
         </div>
-        {isAtiva && (
-          <Button variant="danger" icon={CreditCard} onClick={() => setCheckoutOpen(true)}>
-            Realizar Check-out
+        <div className="flex items-center gap-2">
+          <Button
+            variant="secondary"
+            icon={Printer}
+            onClick={handlePrintComprovante}
+          >
+            Comprovante (PDF)
           </Button>
-        )}
+          {isAtiva && (
+            <Button variant="danger" icon={CreditCard} onClick={() => setCheckoutOpen(true)}>
+              Realizar Check-out
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Info cards */}
