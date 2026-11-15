@@ -37,8 +37,15 @@ const emptyForm = {
 
 export default function QuartosPage() {
   const { isAdmin } = useAuth()
-  const [list, setList] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [list, setList] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem('hotel_cache_quartos_list')
+      return cached ? JSON.parse(cached) : []
+    } catch {
+      return []
+    }
+  })
+  const [loading, setLoading] = useState(() => !sessionStorage.getItem('hotel_cache_quartos_list'))
   const [filters, setFilters] = useState({ status: '', andar: '', predio: '' })
   const [pagination, setPagination] = useState({ page: 1, limit: 15, total: 0, totalPages: 1 })
   const [modalOpen, setModalOpen] = useState(false)
@@ -48,7 +55,7 @@ export default function QuartosPage() {
   const [saving, setSaving] = useState(false)
 
   const fetchList = useCallback(async (page = 1) => {
-    setLoading(true)
+    if (list.length === 0) setLoading(true)
     try {
       const params = { page, limit: 15 }
       if (filters.status) params.status = filters.status
@@ -58,6 +65,9 @@ export default function QuartosPage() {
       const d = res.data
       const items = Array.isArray(d) ? d : (d.data || d.quartos || [])
       setList(items)
+      if (page === 1 && !filters.status && !filters.andar && !filters.predio) {
+        sessionStorage.setItem('hotel_cache_quartos_list', JSON.stringify(items))
+      }
       const totalItems = Array.isArray(d) ? d.length : (d.total || items.length)
       setPagination({
         page: d.page || page,
@@ -234,8 +244,8 @@ export default function QuartosPage() {
         <div className="grid grid-cols-2 gap-4">
           <Input label="Número do Quarto" required value={form.numero} onChange={onChange('numero')} placeholder="Ex: 101" />
           <Select label="Prédio" options={predioOptions} value={form.predio} onChange={onChange('predio')} />
-          <Input label="Quantidade máxima de pessoas" type="number" min="1" value={form.capacidade} onChange={onChange('capacidade')} />
-          <Input label="Andar" type="number" min="1" value={form.andar} onChange={onChange('andar')} />
+          <Input label="Capacidade (pessoas)" type="number" min="1" value={form.capacidade} onChange={onChange('capacidade')} placeholder="Ex: 2" />
+          <Input label="Andar" type="number" min="1" value={form.andar} onChange={onChange('andar')} placeholder="Ex: 1" />
           <div className="col-span-2">
             <Select label="Status" options={statusOptions} value={form.status} onChange={onChange('status')} />
           </div>

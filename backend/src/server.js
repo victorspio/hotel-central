@@ -19,9 +19,18 @@ if (process.env.DATABASE_URL) {
   if (dbUrl.includes('.pooler.supabase.com:5432')) {
     dbUrl = dbUrl.replace('.pooler.supabase.com:5432', '.pooler.supabase.com:6543');
   }
-  if (dbUrl.includes(':6543') && !dbUrl.includes('pgbouncer=true')) {
-    const separator = dbUrl.includes('?') ? '&' : '?';
-    dbUrl = `${dbUrl}${separator}pgbouncer=true&connection_limit=1`;
+  if (dbUrl.includes(':6543')) {
+    if (!dbUrl.includes('pgbouncer=true')) {
+      const sep = dbUrl.includes('?') ? '&' : '?';
+      dbUrl = `${dbUrl}${sep}pgbouncer=true`;
+    }
+    // Upgrade connection_limit to 5 to execute parallel queries concurrently
+    if (dbUrl.includes('connection_limit=1')) {
+      dbUrl = dbUrl.replace('connection_limit=1', 'connection_limit=5');
+    } else if (!dbUrl.includes('connection_limit=')) {
+      const sep = dbUrl.includes('?') ? '&' : '?';
+      dbUrl = `${dbUrl}${sep}connection_limit=5`;
+    }
   }
   process.env.DATABASE_URL = dbUrl;
 }

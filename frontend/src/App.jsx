@@ -1,20 +1,30 @@
-import React from 'react'
+import React, { Suspense, lazy } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import Layout from './components/Layout'
-import LoginPage from './pages/LoginPage'
-import DashboardPage from './pages/DashboardPage'
-import ClientesPage from './pages/ClientesPage'
-import ClienteDetalhePage from './pages/ClienteDetalhePage'
-import QuartosPage from './pages/QuartosPage'
-import MapaQuartosPage from './pages/MapaQuartosPage'
-import HospedagensPage from './pages/HospedagensPage'
-import NovaHospedagemPage from './pages/NovaHospedagemPage'
-import HospedagemDetalhePage from './pages/HospedagemDetalhePage'
-import FinanceiroPage from './pages/FinanceiroPage'
-import RelatoriosPage from './pages/RelatoriosPage'
-import ConfiguracoesTarifasPage from './pages/ConfiguracoesTarifasPage'
+
+// Lazy-load pages to split heavy bundles (recharts, pdf, html2canvas) and load instantly
+const LoginPage = lazy(() => import('./pages/LoginPage'))
+const DashboardPage = lazy(() => import('./pages/DashboardPage'))
+const ClientesPage = lazy(() => import('./pages/ClientesPage'))
+const ClienteDetalhePage = lazy(() => import('./pages/ClienteDetalhePage'))
+const QuartosPage = lazy(() => import('./pages/QuartosPage'))
+const MapaQuartosPage = lazy(() => import('./pages/MapaQuartosPage'))
+const HospedagensPage = lazy(() => import('./pages/HospedagensPage'))
+const NovaHospedagemPage = lazy(() => import('./pages/NovaHospedagemPage'))
+const HospedagemDetalhePage = lazy(() => import('./pages/HospedagemDetalhePage'))
+const FinanceiroPage = lazy(() => import('./pages/FinanceiroPage'))
+const RelatoriosPage = lazy(() => import('./pages/RelatoriosPage'))
+const ConfiguracoesTarifasPage = lazy(() => import('./pages/ConfiguracoesTarifasPage'))
+
+function PageLoader() {
+  return (
+    <div className="flex items-center justify-center min-h-[350px]">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
+    </div>
+  )
+}
 
 function ProtectedRoute({ children, adminOnly = false }) {
   const { user, loading } = useAuth()
@@ -94,7 +104,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AppRoutes />
+        <Suspense fallback={<PageLoader />}>
+          <AppRoutes />
+        </Suspense>
         <Toaster
           position="top-right"
           toastOptions={{

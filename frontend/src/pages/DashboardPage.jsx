@@ -55,25 +55,39 @@ const statusColorMap = {
 
 export default function DashboardPage() {
   const navigate = useNavigate()
-  const [data, setData] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [lastUpdate, setLastUpdate] = useState(null)
+  const [data, setData] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem('hotel_cache_dashboard')
+      return cached ? JSON.parse(cached) : null
+    } catch {
+      return null
+    }
+  })
+  const [loading, setLoading] = useState(() => !sessionStorage.getItem('hotel_cache_dashboard'))
+  const [lastUpdate, setLastUpdate] = useState(() => {
+    const cachedTime = sessionStorage.getItem('hotel_cache_dashboard_time')
+    return cachedTime ? new Date(cachedTime) : null
+  })
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (isBackground = false) => {
+    if (!isBackground && !data) setLoading(true)
     try {
       const res = await dashboard.get()
       setData(res.data)
-      setLastUpdate(new Date())
+      const now = new Date()
+      setLastUpdate(now)
+      sessionStorage.setItem('hotel_cache_dashboard', JSON.stringify(res.data))
+      sessionStorage.setItem('hotel_cache_dashboard_time', now.toISOString())
     } catch (err) {
       console.error('Erro ao carregar dashboard', err)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [data])
 
   useEffect(() => {
-    fetchData()
-    const interval = setInterval(fetchData, 5 * 60 * 1000)
+    fetchData(true)
+    const interval = setInterval(() => fetchData(true), 5 * 60 * 1000)
     return () => clearInterval(interval)
   }, [fetchData])
 

@@ -32,8 +32,15 @@ const statusOptions = [
 
 export default function MapaQuartosPage() {
   const navigate = useNavigate()
-  const [rooms, setRooms] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [rooms, setRooms] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem('hotel_cache_mapa_quartos')
+      return cached ? JSON.parse(cached) : []
+    } catch {
+      return []
+    }
+  })
+  const [loading, setLoading] = useState(() => !sessionStorage.getItem('hotel_cache_mapa_quartos'))
   const [predioTab, setPredioTab] = useState('TODOS') // 'TODOS' | 'CENTRAL' | 'ANEXO'
   const [filters, setFilters] = useState({ andar: '', status: '' })
   const [selectedRoom, setSelectedRoom] = useState(null)
@@ -41,20 +48,22 @@ export default function MapaQuartosPage() {
   const [modalOpen, setModalOpen] = useState(false)
   const [changingStatus, setChangingStatus] = useState(null)
 
-  const fetchRooms = useCallback(async () => {
+  const fetchRooms = useCallback(async (isBackground = false) => {
     try {
-      setLoading(true)
+      if (!isBackground && rooms.length === 0) setLoading(true)
       const res = await quartos.list({ limit: 200 })
-      setRooms(res.data.data || res.data || [])
+      const list = res.data.data || res.data || []
+      setRooms(list)
+      sessionStorage.setItem('hotel_cache_mapa_quartos', JSON.stringify(list))
     } catch {
       toast.error('Erro ao carregar quartos.')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [rooms.length])
 
   useEffect(() => {
-    fetchRooms()
+    fetchRooms(true)
   }, [fetchRooms])
 
   const floors = [...new Set(rooms.map((r) => r.andar))].filter((v) => v !== undefined && v !== null).sort((a, b) => a - b)
