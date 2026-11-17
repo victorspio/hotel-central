@@ -22,48 +22,26 @@ const listar = async (req, res, next) => {
     const { search, page = 1, limit = 20 } = req.query;
     const pageNum = Math.max(1, Number(page));
     const limitNum = Math.max(1, Number(limit));
+    const skip = (pageNum - 1) * limitNum;
 
+    const where = {};
     if (search && search.trim()) {
       const q = search.trim();
-      const sNorm = norm(q);
       const digits = q.replace(/\D/g, '');
-
-      const allClientes = await prisma.cliente.findMany({
-        orderBy: { nome: 'asc' },
-        include: {
-          _count: { select: { hospedagens: true } },
-        },
-      });
-
-      const filtered = allClientes.filter((c) => {
-        const nNome = norm(c.nome);
-        const nEmail = norm(c.email);
-        const matchText = sNorm.length > 0 && (nNome.includes(sNorm) || nEmail.includes(sNorm));
-        const matchDigits = digits.length >= 2 && (
-          (c.cpf && c.cpf.includes(digits)) ||
-          (c.telefone && c.telefone.replace(/\D/g, '').includes(digits))
-        );
-        return matchText || matchDigits;
-      });
-
-      const total = filtered.length;
-      const skip = (pageNum - 1) * limitNum;
-      const paginated = filtered.slice(skip, skip + limitNum);
-
-      return res.json({
-        data: paginated,
-        clientes: paginated,
-        total,
-        page: pageNum,
-        limit: limitNum,
-        totalPages: Math.ceil(total / limitNum) || 1,
-        pagination: { page: pageNum, limit: limitNum, total, totalPages: Math.ceil(total / limitNum) || 1 },
-      });
+      const orConditions = [
+        { nome: { contains: q, mode: 'insensitive' } },
+        { email: { contains: q, mode: 'insensitive' } },
+      ];
+      if (digits.length >= 2) {
+        orConditions.push({ cpf: { contains: digits } });
+        orConditions.push({ telefone: { contains: digits } });
+      }
+      where.OR = orConditions;
     }
 
-    const skip = (pageNum - 1) * limitNum;
     const [clientes, total] = await Promise.all([
       prisma.cliente.findMany({
+        where,
         skip,
         take: limitNum,
         orderBy: { nome: 'asc' },
@@ -71,8 +49,10 @@ const listar = async (req, res, next) => {
           _count: { select: { hospedagens: true } },
         },
       }),
-      prisma.cliente.count(),
+      prisma.cliente.count({ where }),
     ]);
+
+    const totalPages = Math.ceil(total / limitNum) || 1;
 
     res.json({
       data: clientes,
@@ -80,8 +60,8 @@ const listar = async (req, res, next) => {
       total,
       page: pageNum,
       limit: limitNum,
-      totalPages: Math.ceil(total / limitNum) || 1,
-      pagination: { page: pageNum, limit: limitNum, total, totalPages: Math.ceil(total / limitNum) || 1 },
+      totalPages,
+      pagination: { page: pageNum, limit: limitNum, total, totalPages },
     });
   } catch (err) {
     next(err);

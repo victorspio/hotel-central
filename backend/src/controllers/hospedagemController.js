@@ -42,9 +42,16 @@ const listar = async (req, res, next) => {
       prisma.hospedagem.count({ where }),
     ]);
 
+    const totalPages = Math.ceil(total / Number(limit)) || 1;
+
     res.json({
       data: hospedagens,
-      pagination: { page: Number(page), limit: Number(limit), total, totalPages: Math.ceil(total / Number(limit)) },
+      hospedagens,
+      total,
+      page: Number(page),
+      limit: Number(limit),
+      totalPages,
+      pagination: { page: Number(page), limit: Number(limit), total, totalPages },
     });
   } catch (err) {
     next(err);

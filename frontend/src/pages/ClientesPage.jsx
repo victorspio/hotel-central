@@ -154,10 +154,10 @@ export default function ClientesPage() {
       const d = res.data
       setList(d.data || d.clientes || [])
       setPagination({
-        page: d.page || page,
-        limit: d.limit || 15,
-        total: d.total || 0,
-        totalPages: d.totalPages || 1
+        page: d.page || d.pagination?.page || page,
+        limit: d.limit || d.pagination?.limit || 15,
+        total: d.total ?? d.pagination?.total ?? 0,
+        totalPages: d.totalPages || d.pagination?.totalPages || 1
       })
     } catch {
       toast.error('Erro ao carregar clientes.')

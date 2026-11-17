@@ -77,7 +77,12 @@ export default function FinanceiroPage() {
       const res = await financeiroApi.listLancamentos(params)
       const d = res.data
       setLancamentos(d.data || d.lancamentos || [])
-      setPaginationLanc({ page: d.page || page, limit: d.limit || 15, total: d.total || 0, totalPages: d.totalPages || 1 })
+      setPaginationLanc({
+        page: d.page || d.pagination?.page || page,
+        limit: d.limit || d.pagination?.limit || 15,
+        total: d.total ?? d.pagination?.total ?? 0,
+        totalPages: d.totalPages || d.pagination?.totalPages || 1
+      })
     } catch {
       toast.error('Erro ao carregar lançamentos.')
     } finally {

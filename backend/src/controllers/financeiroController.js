@@ -31,9 +31,16 @@ const listar = async (req, res, next) => {
       prisma.lancamentoFinanceiro.count({ where }),
     ]);
 
+    const totalPages = Math.ceil(total / Number(limit)) || 1;
+
     res.json({
       data: lancamentos,
-      pagination: { page: Number(page), limit: Number(limit), total, totalPages: Math.ceil(total / Number(limit)) },
+      lancamentos,
+      total,
+      page: Number(page),
+      limit: Number(limit),
+      totalPages,
+      pagination: { page: Number(page), limit: Number(limit), total, totalPages },
     });
   } catch (err) {
     next(err);

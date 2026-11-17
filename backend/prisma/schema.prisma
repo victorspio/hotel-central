@@ -42,6 +42,9 @@ model Cliente {
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
   hospedagens   Hospedagem[]
+
+  @@index([nome])
+  @@index([telefone])
 }
 
 model Quarto {
@@ -60,6 +63,8 @@ model Quarto {
   hospedagens      Hospedagem[]
 
   @@unique([numero, predio])
+  @@index([status])
+  @@index([predio])
 }
 
 model Hospedagem {
@@ -84,6 +89,12 @@ model Hospedagem {
   quarto            Quarto                @relation(fields: [quartoId], references: [id])
   consumosExtras    ConsumoExtra[]
   lancamento        LancamentoFinanceiro?
+
+  @@index([status])
+  @@index([clienteId])
+  @@index([quartoId])
+  @@index([dataEntrada])
+  @@index([dataSaida])
 }
 
 model ConsumoExtra {
@@ -95,6 +106,8 @@ model ConsumoExtra {
   data         DateTime   @default(now())
   createdAt    DateTime   @default(now())
   hospedagem   Hospedagem @relation(fields: [hospedagemId], references: [id])
+
+  @@index([hospedagemId])
 }
 
 model LancamentoFinanceiro {
@@ -111,6 +124,10 @@ model LancamentoFinanceiro {
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
   hospedagem     Hospedagem? @relation(fields: [hospedagemId], references: [id])
+
+  @@index([tipo, data])
+  @@index([status])
+  @@index([data])
 }
 
 model TarifaQuarto {
