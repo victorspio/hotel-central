@@ -115,8 +115,9 @@ export default function QuartosPage() {
     if (!form.numero) return toast.error('Número do quarto é obrigatório.')
     if (!form.capacidade) return toast.error('Informe a capacidade máxima de pessoas.')
     if (!form.andar) return toast.error('Informe o andar do quarto.')
-    if (editItem?.status === 'OCUPADO' && form.status !== 'OCUPADO') {
-      return toast.error('Não é permitido alterar o status de um quarto ocupado sem antes realizar o check-out.')
+    const hasActiveStay = Boolean(editItem?.status === 'OCUPADO' && editItem?.hospedagemAtual)
+    if (hasActiveStay && form.status !== 'OCUPADO') {
+      return toast.error('Não é possível alterar o status de um quarto com hóspede ativo. Realize o check-out primeiro.')
     }
     setSaving(true)
     try {
@@ -171,22 +172,26 @@ export default function QuartosPage() {
     },
     { key: 'andar', label: 'Andar', render: (v) => `${v}º` },
     { key: 'capacidade', label: 'Capacidade Máx.', render: (v) => `${v} pess.` },
-    { key: 'status', label: 'Status', render: (v) => (
-      <Badge color={statusColorMap[v] || 'gray'}>{getStatusLabel(v)}</Badge>
-    )},
+    {
+      key: 'status', label: 'Status', render: (v) => (
+        <Badge color={statusColorMap[v] || 'gray'}>{getStatusLabel(v)}</Badge>
+      )
+    },
     { key: 'descricao', label: 'Descrição', render: (v) => <span className="text-xs text-gray-500 truncate max-w-xs">{v || '-'}</span> },
-    { key: 'id', label: 'Ações', width: '100px', render: (_, row) => (
-      <div className="flex items-center gap-1">
-        <button onClick={() => openEdit(row)} className="p-1.5 rounded text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors">
-          <Pencil size={15} />
-        </button>
-        {isAdmin && (
-          <button onClick={() => setDeleteModal(row)} className="p-1.5 rounded text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors">
-            <Trash2 size={15} />
+    {
+      key: 'id', label: 'Ações', width: '100px', render: (_, row) => (
+        <div className="flex items-center gap-1">
+          <button onClick={() => openEdit(row)} className="p-1.5 rounded text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors">
+            <Pencil size={15} />
           </button>
-        )}
-      </div>
-    )}
+          {isAdmin && (
+            <button onClick={() => setDeleteModal(row)} className="p-1.5 rounded text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors">
+              <Trash2 size={15} />
+            </button>
+          )}
+        </div>
+      )
+    }
   ]
 
   return (
@@ -256,8 +261,12 @@ export default function QuartosPage() {
               label="Status"
               options={statusOptions}
               value={form.status}
-              disabled={editItem?.status === 'OCUPADO'}
-              helper={editItem?.status === 'OCUPADO' ? 'Quarto com hospedagem ativa. Para alterar o status, realize o check-out.' : undefined}
+              disabled={Boolean(editItem?.status === 'OCUPADO' && editItem?.hospedagemAtual)}
+              helper={
+                editItem?.status === 'OCUPADO' && editItem?.hospedagemAtual
+                  ? `Quarto com hóspede ativo (${editItem.hospedagemAtual.cliente?.nome || 'Cliente'}). Realize o check-out para liberar.`
+                  : undefined
+              }
               onChange={onChange('status')}
             />
           </div>

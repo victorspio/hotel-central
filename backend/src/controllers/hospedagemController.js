@@ -400,16 +400,22 @@ const alterarStatusQuarto = async (req, res, next) => {
       include: {
         hospedagens: {
           where: { status: 'ATIVA' },
+          include: {
+            cliente: { select: { id: true, nome: true } },
+          },
           take: 1,
         },
       },
     });
     if (!quarto) return res.status(404).json({ error: 'Quarto não encontrado' });
 
-    // Bloqueia alteração manual de status se o quarto estiver ocupado ou tiver hospedagem ativa
-    if ((quarto.status === 'OCUPADO' || quarto.hospedagens.length > 0) && status !== 'OCUPADO') {
+    const hospedagemAtiva = quarto.hospedagens && quarto.hospedagens.length > 0 ? quarto.hospedagens[0] : null;
+
+    // Bloqueia alteração de status apenas se houver hospedagem ativa com cliente cadastrado
+    if (hospedagemAtiva && status !== 'OCUPADO') {
       return res.status(400).json({
-        error: 'Não é permitido alterar o status de um quarto ocupado. Realize o check-out da hospedagem primeiro.',
+        error: `Não é possível alterar o status. O quarto possui hospedagem ativa para ${hospedagemAtiva.cliente?.nome || 'um cliente'}. Realize o check-out primeiro.`,
+        hospedagemAtivaId: hospedagemAtiva.id,
       });
     }
 

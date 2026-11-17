@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { RefreshCw, Info, LogIn, LogOut as LogOutIcon } from 'lucide-react'
+import { RefreshCw, Info, LogIn, LogOut as LogOutIcon, AlertTriangle } from 'lucide-react'
 import { quartos, hospedagens } from '../services/api'
 import { formatDate, formatCurrency, getStatusLabel, getStatusCardColor } from '../utils/formatters'
 import Button from '../components/ui/Button'
@@ -46,6 +46,7 @@ export default function MapaQuartosPage() {
   const [selectedRoom, setSelectedRoom] = useState(null)
   const [roomStay, setRoomStay] = useState(null)
   const [modalOpen, setModalOpen] = useState(false)
+  const [warningModal, setWarningModal] = useState({ isOpen: false, room: null, stay: null })
   const [changingStatus, setChangingStatus] = useState(null)
 
   const fetchRooms = useCallback(async (isBackground = false) => {
@@ -95,30 +96,48 @@ export default function MapaQuartosPage() {
 
   const handleCardClick = async (room) => {
     setSelectedRoom(room)
-    setRoomStay(null)
-    if (room.status === 'OCUPADO') {
+    const existingStay = room.hospedagemAtual || (room.hospedagens && room.hospedagens[0])
+    setRoomStay(existingStay || null)
+    if (room.status === 'OCUPADO' && !existingStay) {
       try {
         const res = await hospedagens.list({ quartoId: room.id, status: 'ATIVA', limit: 1 })
         const list = res.data.data || res.data || []
-        setRoomStay(list[0] || null)
+        const found = list[0] || null
+        setRoomStay(found)
+        if (found) {
+          setRooms((prev) => prev.map((r) => r.id === room.id ? { ...r, hospedagemAtual: found } : r))
+        }
       } catch {}
     }
     setModalOpen(true)
   }
 
-  const handleStatusChange = async (roomId, newStatus) => {
-    const room = rooms.find((r) => r.id === roomId)
-    if (room?.status === 'OCUPADO' && newStatus !== 'OCUPADO') {
-      toast.error('Quarto ocupado: realize o check-out antes de alterar o status!')
-      return
+  const handleStatusChange = async (room, newStatus) => {
+    // Se o quarto está OCUPADO e estão tentando mudar para outro status
+    if (room.status === 'OCUPADO' && newStatus !== 'OCUPADO') {
+      const stay = room.hospedagemAtual || (room.hospedagens && room.hospedagens[0])
+      if (stay && stay.cliente) {
+        setWarningModal({ isOpen: true, room, stay })
+        return
+      }
     }
-    setChangingStatus(roomId)
+
+    setChangingStatus(room.id)
     try {
-      await quartos.updateStatus(roomId, newStatus)
-      setRooms((prev) => prev.map((r) => r.id === roomId ? { ...r, status: newStatus } : r))
+      await quartos.updateStatus(room.id, newStatus)
+      setRooms((prev) => prev.map((r) => r.id === room.id ? { ...r, status: newStatus, hospedagemAtual: newStatus === 'OCUPADO' ? r.hospedagemAtual : null } : r))
       toast.success('Status atualizado!')
     } catch (err) {
-      toast.error(err?.response?.data?.error || err?.response?.data?.message || 'Erro ao atualizar status.')
+      const activeId = err?.response?.data?.hospedagemAtivaId
+      if (activeId) {
+        setWarningModal({
+          isOpen: true,
+          room,
+          stay: { id: activeId, cliente: { nome: 'Hóspede Ativo' } }
+        })
+      } else {
+        toast.error(err?.response?.data?.error || err?.response?.data?.message || 'Erro ao atualizar status.')
+      }
     } finally {
       setChangingStatus(null)
     }
@@ -318,14 +337,9 @@ export default function MapaQuartosPage() {
                       <div className="mt-2" onClick={(e) => e.stopPropagation()}>
                         <select
                           value={room.status}
-                          disabled={changingStatus === room.id || room.status === 'OCUPADO'}
-                          onChange={(e) => handleStatusChange(room.id, e.target.value)}
-                          className={`w-full text-xs rounded border border-gray-200 px-1.5 py-1 ${
-                            room.status === 'OCUPADO'
-                              ? 'bg-red-50 text-red-700 cursor-not-allowed font-medium'
-                              : 'bg-white/80 cursor-pointer'
-                          } focus:outline-none`}
-                          title={room.status === 'OCUPADO' ? 'Quarto ocupado: realize o check-out para alterar o status' : 'Alterar status'}
+                          disabled={changingStatus === room.id}
+                          onChange={(e) => handleStatusChange(room, e.target.value)}
+                          className="w-full text-xs rounded border border-gray-200 px-1.5 py-1 bg-white/80 focus:outline-none cursor-pointer"
                         >
                           <option value="LIVRE">Livre</option>
                           <option value="OCUPADO">Ocupado</option>
@@ -399,14 +413,9 @@ export default function MapaQuartosPage() {
                       <div className="mt-2" onClick={(e) => e.stopPropagation()}>
                         <select
                           value={room.status}
-                          disabled={changingStatus === room.id || room.status === 'OCUPADO'}
-                          onChange={(e) => handleStatusChange(room.id, e.target.value)}
-                          className={`w-full text-xs rounded border border-gray-200 px-1.5 py-1 ${
-                            room.status === 'OCUPADO'
-                              ? 'bg-red-50 text-red-700 cursor-not-allowed font-medium'
-                              : 'bg-white/80 cursor-pointer'
-                          } focus:outline-none`}
-                          title={room.status === 'OCUPADO' ? 'Quarto ocupado: realize o check-out para alterar o status' : 'Alterar status'}
+                          disabled={changingStatus === room.id}
+                          onChange={(e) => handleStatusChange(room, e.target.value)}
+                          className="w-full text-xs rounded border border-gray-200 px-1.5 py-1 bg-white/80 focus:outline-none cursor-pointer"
                         >
                           <option value="LIVRE">Livre</option>
                           <option value="OCUPADO">Ocupado</option>
@@ -520,6 +529,80 @@ export default function MapaQuartosPage() {
             )}
           </div>
         )}
+      </Modal>
+
+      {/* Modal de Aviso de Check-out Obrigatório */}
+      <Modal
+        isOpen={warningModal.isOpen}
+        onClose={() => setWarningModal({ isOpen: false, room: null, stay: null })}
+        title="Check-out Necessário"
+        size="sm"
+        footer={
+          <>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setWarningModal({ isOpen: false, room: null, stay: null })}
+            >
+              Cancelar
+            </Button>
+            {warningModal.stay?.id && (
+              <Button
+                variant="danger"
+                size="sm"
+                icon={LogOutIcon}
+                onClick={() => {
+                  const stayId = warningModal.stay.id
+                  setWarningModal({ isOpen: false, room: null, stay: null })
+                  navigate(`/hospedagens/${stayId}`)
+                }}
+              >
+                Fazer Check-out
+              </Button>
+            )}
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+            <AlertTriangle className="text-amber-600 shrink-0 mt-0.5" size={22} />
+            <div className="text-sm">
+              <p className="font-semibold text-amber-900">
+                Quarto {warningModal.room?.numero} possui hóspede cadastrado
+              </p>
+              <p className="text-amber-700 text-xs mt-1">
+                Para alterar o status ou liberar este quarto, é necessário realizar o check-out da hospedagem ativa.
+              </p>
+            </div>
+          </div>
+
+          {warningModal.stay && (
+            <div className="bg-gray-50 rounded-xl p-3 border border-gray-200 text-xs space-y-1.5">
+              <div className="flex justify-between">
+                <span className="text-gray-500">Hóspede:</span>
+                <span className="font-semibold text-gray-800">
+                  {warningModal.stay.cliente?.nome || 'Hóspede Ativo'}
+                </span>
+              </div>
+              {warningModal.stay.dataEntrada && (
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Entrada:</span>
+                  <span className="font-medium text-gray-700">
+                    {formatDate(warningModal.stay.dataEntrada)}
+                  </span>
+                </div>
+              )}
+              {warningModal.stay.previsaoSaida && (
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Previsão de Saída:</span>
+                  <span className="font-medium text-gray-700">
+                    {formatDate(warningModal.stay.previsaoSaida)}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </Modal>
     </div>
   )

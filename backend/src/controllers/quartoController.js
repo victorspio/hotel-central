@@ -14,21 +14,41 @@ const listar = async (req, res, next) => {
     if (predio) where.predio = predio.toUpperCase();
 
     const orderBy = [{ predio: 'asc' }, { andar: 'asc' }, { numero: 'asc' }];
+    const include = {
+      hospedagens: {
+        where: { status: 'ATIVA' },
+        include: {
+          cliente: { select: { id: true, nome: true, cpf: true, telefone: true } },
+        },
+        take: 1,
+      },
+    };
+
+    const formatQuarto = (q) => {
+      const { hospedagens, ...rest } = q;
+      return {
+        ...rest,
+        hospedagemAtual: hospedagens && hospedagens.length > 0 ? hospedagens[0] : null,
+      };
+    };
 
     if (page || limit) {
       const pageNum = Math.max(1, Number(page) || 1);
       const limitNum = Math.max(1, Number(limit) || 50);
       const skip = (pageNum - 1) * limitNum;
 
-      const [quartos, total] = await Promise.all([
+      const [quartosRaw, total] = await Promise.all([
         prisma.quarto.findMany({
           where,
+          include,
           skip,
           take: limitNum,
           orderBy,
         }),
         prisma.quarto.count({ where }),
       ]);
+
+      const quartos = quartosRaw.map(formatQuarto);
 
       return res.json({
         data: quartos,
@@ -40,10 +60,13 @@ const listar = async (req, res, next) => {
       });
     }
 
-    const quartos = await prisma.quarto.findMany({
+    const quartosRaw = await prisma.quarto.findMany({
       where,
+      include,
       orderBy,
     });
+
+    const quartos = quartosRaw.map(formatQuarto);
 
     res.json(quartos);
   } catch (err) {
@@ -131,6 +154,9 @@ const atualizar = async (req, res, next) => {
       include: {
         hospedagens: {
           where: { status: 'ATIVA' },
+          include: {
+            cliente: { select: { id: true, nome: true } },
+          },
           take: 1,
         },
       },
@@ -143,10 +169,12 @@ const atualizar = async (req, res, next) => {
       return res.status(400).json({ error: `Status inválido. Use: ${STATUS_VALIDOS.join(', ')}` });
     }
 
-    // Bloqueia alteração manual de status se o quarto estiver ocupado ou com hospedagem ativa
-    if (status && (quarto.status === 'OCUPADO' || quarto.hospedagens.length > 0) && status !== 'OCUPADO') {
+    // Bloqueia alteração manual de status apenas se houver hospedagem ativa com cliente cadastrado
+    const hospedagemAtiva = quarto.hospedagens && quarto.hospedagens.length > 0 ? quarto.hospedagens[0] : null;
+    if (status && hospedagemAtiva && status !== 'OCUPADO') {
       return res.status(400).json({
-        error: 'Não é permitido alterar o status de um quarto ocupado sem antes realizar o check-out.',
+        error: `Não é possível alterar o status. O quarto possui hospedagem ativa para ${hospedagemAtiva.cliente?.nome || 'um cliente'}. Realize o check-out primeiro.`,
+        hospedagemAtivaId: hospedagemAtiva.id,
       });
     }
 
