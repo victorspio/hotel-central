@@ -27,6 +27,7 @@ async function clean() {
       // Hotel
       { predio: 'CENTRAL', tipo: 'SIMPLES_SEM_AR', nome: 'Hotel - Quarto Simples', valorPorPessoa: 0, descricao: 'Hotel: Quarto simples (sem ar)' },
       { predio: 'CENTRAL', tipo: 'COMPLETO', nome: 'Hotel - Quarto Completo', valorPorPessoa: 0, descricao: 'Hotel: Quarto completo' },
+      { predio: 'CENTRAL', tipo: 'ESQUEMA', nome: 'Hotel - Esquema', valorPorPessoa: 30, descricao: JSON.stringify({ texto: 'Hotel: Descanso rápido (Esquema)', opcoesValores: [30, 50], valoresPorPessoa: { '1': 30 } }) },
       // Anexo
       { predio: 'ANEXO', tipo: 'COMPLETO', nome: 'Anexo - Quarto Completo', valorPorPessoa: 0, descricao: 'Anexo: Quarto completo' },
       { predio: 'ANEXO', tipo: 'SUITE_PREMIUM', nome: 'Anexo - Suíte Premium', valorPorPessoa: 0, descricao: 'Anexo: Suíte Premium' },

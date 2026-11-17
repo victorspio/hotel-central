@@ -57,7 +57,9 @@ export async function gerarComprovanteHospedagem(hosp, options = {}) {
 
     const isFinalizada = hosp.status === 'FINALIZADA'
     const predioNome = hosp.quarto?.predio === 'ANEXO' ? 'Anexo' : 'Hotel'
+    const isEsquema = hosp.tipo === 'ESQUEMA'
     const acomodacaoNome = (() => {
+      if (hosp.tipo === 'ESQUEMA') return 'Esquema (Descanso Rápido)'
       if (hosp.tipo === 'SUITE_PREMIUM') return 'Suíte Premium'
       if (hosp.tipo === 'COMPLETO') return 'Quarto Completo'
       return 'Quarto Simples (sem ar)'
@@ -191,9 +193,9 @@ export async function gerarComprovanteHospedagem(hosp, options = {}) {
 
     // 1. Linha de Diárias
     tableBody.push([
-      `Diárias da Acomodação (${predioNome} - ${acomodacaoNome})`,
-      'Diárias',
-      `${dias} diária(s)`,
+      isEsquema ? `Descanso Rápido (${predioNome} - Esquema)` : `Diárias da Acomodação (${predioNome} - ${acomodacaoNome})`,
+      isEsquema ? 'Descanso Rápido' : 'Diárias',
+      isEsquema ? `${dias} período(s)` : `${dias} diária(s)`,
       formatCurrency(valorDiaria),
       formatCurrency(totalDiarias)
     ])
@@ -253,8 +255,8 @@ export async function gerarComprovanteHospedagem(hosp, options = {}) {
     doc.setFont('helvetica', 'normal')
     doc.setTextColor(71, 85, 105)
 
-    // Subtotal Diárias
-    doc.text('Subtotal Diárias:', summaryX + 4, currentY + 6)
+    // Subtotal Diárias / Esquema
+    doc.text(isEsquema ? 'Subtotal Esquema:' : 'Subtotal Diárias:', summaryX + 4, currentY + 6)
     doc.text(formatCurrency(totalDiarias), summaryX + summaryWidth - 4, currentY + 6, { align: 'right' })
 
     // Subtotal Consumos

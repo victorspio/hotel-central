@@ -3,6 +3,7 @@ const prisma = require('../lib/prisma');
 function parseTarifa(tarifa) {
   if (!tarifa) return null;
   let valoresPorPessoa = {};
+  let opcoesValores = [];
   let descricaoTexto = tarifa.descricao || '';
 
   if (tarifa.descricao) {
@@ -17,11 +18,19 @@ function parseTarifa(tarifa) {
           } else {
             valoresPorPessoa = parsed;
           }
+          if (Array.isArray(parsed.opcoesValores)) {
+            opcoesValores = parsed.opcoesValores;
+          }
         }
       } catch {
         // keep as string
       }
     }
+  }
+
+  // Para o Esquema, se não houver opções cadastradas, o padrão é 30 e 50 reais
+  if (tarifa.tipo === 'ESQUEMA' && opcoesValores.length === 0) {
+    opcoesValores = [30, 50];
   }
 
   // If no specific values configured yet, but valorPorPessoa > 0:
@@ -33,14 +42,20 @@ function parseTarifa(tarifa) {
     ...tarifa,
     descricaoTexto,
     valoresPorPessoa,
+    opcoesValores,
   };
 }
 
 function getDiariaTarifa(tarifa, numHospedes = 1, fallbackValor = 0) {
-  const n = Number(numHospedes) || 1;
-  if (!tarifa) return (Number(fallbackValor) || 0) * n;
+  if (!tarifa) return (Number(fallbackValor) || 0) * (Number(numHospedes) || 1);
 
   const parsed = parseTarifa(tarifa);
+  if (tarifa.tipo === 'ESQUEMA') {
+    const opcoes = parsed?.opcoesValores || [30, 50];
+    return Number(opcoes[0]) || 30;
+  }
+
+  const n = Number(numHospedes) || 1;
   const valores = parsed?.valoresPorPessoa || {};
 
   if (valores[n] !== undefined && valores[n] !== null && String(valores[n]).trim() !== '' && Number(valores[n]) > 0) {
@@ -83,7 +98,7 @@ const listar = async (req, res, next) => {
 const atualizar = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { valorPorPessoa, valoresPorPessoa, nome, descricao, ativo, tipo, predio } = req.body;
+    const { valorPorPessoa, valoresPorPessoa, opcoesValores, nome, descricao, ativo, tipo, predio } = req.body;
 
     let tarifa = null;
     const numId = Number(id);
@@ -103,7 +118,22 @@ const atualizar = async (req, res, next) => {
     let newValorPorPessoa = valorPorPessoa;
     let newDescricao = descricao !== undefined ? descricao : (tarifa?.descricao || '');
 
-    if (valoresPorPessoa && typeof valoresPorPessoa === 'object') {
+    if (opcoesValores && Array.isArray(opcoesValores)) {
+      const cleanOpcoes = opcoesValores
+        .map((v) => Number(String(v).replace(',', '.')))
+        .filter((v) => !isNaN(v) && v > 0);
+      newValorPorPessoa = cleanOpcoes[0] || (tarifa?.valorPorPessoa || 30);
+
+      const texto = typeof descricao === 'string' && !descricao.trim().startsWith('{')
+        ? descricao
+        : (parseTarifa(tarifa)?.descricaoTexto || nome || `${predioNormalizado === 'ANEXO' ? 'Anexo' : 'Hotel'} - ${tipoNormalizado}`);
+
+      newDescricao = JSON.stringify({
+        texto,
+        opcoesValores: cleanOpcoes,
+        valoresPorPessoa: { '1': newValorPorPessoa }
+      });
+    } else if (valoresPorPessoa && typeof valoresPorPessoa === 'object') {
       const baseValor = valoresPorPessoa['1'] !== undefined && valoresPorPessoa['1'] !== ''
         ? Number(valoresPorPessoa['1'])
         : (valorPorPessoa !== undefined ? Number(valorPorPessoa) : (tarifa?.valorPorPessoa || 0));

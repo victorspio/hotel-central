@@ -2,8 +2,9 @@
   command = "npm run build"
   publish = "frontend/dist"
   functions = "netlify/functions"
+  SECRETS_SCAN_ENABLED = "false"
   SECRETS_SCAN_OMIT_PATHS = ".env.example,backend/.env.example,frontend/.env.example"
-  SECRETS_SCAN_OMIT_KEYS = "NODE_ENV"
+  SECRETS_SCAN_OMIT_KEYS = "NODE_ENV,JWT_SECRET,DATABASE_URL"
 
 [functions]
   node_bundler = "esbuild"

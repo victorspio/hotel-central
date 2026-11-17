@@ -13,7 +13,9 @@ import {
   Users,
   CheckCircle2,
   Info,
-  Sparkles
+  Sparkles,
+  Zap,
+  Trash2
 } from 'lucide-react'
 import { tarifasService } from '../services/tarifas'
 import { useAuth } from '../contexts/AuthContext'
@@ -42,6 +44,16 @@ const TARIFA_CONFIG_HOTEL = [
     iconColor: 'text-blue-600',
     borderColor: 'border-blue-200',
     badgeBg: 'bg-blue-50 text-blue-700 border-blue-200'
+  },
+  {
+    tipo: 'ESQUEMA',
+    label: 'Esquema (Descanso Rápido)',
+    desc: 'Descanso rápido de curta permanência no Hotel.',
+    icon: Zap,
+    iconBg: 'bg-amber-100',
+    iconColor: 'text-amber-600',
+    borderColor: 'border-amber-200',
+    badgeBg: 'bg-amber-50 text-amber-700 border-amber-200'
   }
 ]
 
@@ -85,8 +97,21 @@ export default function ConfiguracoesTarifasPage() {
   const [viewModalData, setViewModalData] = useState(null) // { tarifa, config, predio }
   const [editModalData, setEditModalData] = useState(null) // { tarifa, config, predio }
   const [editValores, setEditValores] = useState({}) // { '1': '70', '2': '100' ... }
+  const [editOpcoesEsquema, setEditOpcoesEsquema] = useState(['30', '50'])
   const [maxPessoas, setMaxPessoas] = useState(DEFAULT_PERSON_COUNT)
   const [saving, setSaving] = useState(false)
+
+  const handleAddOpcaoEsquema = () => {
+    setEditOpcoesEsquema((prev) => [...prev, ''])
+  }
+
+  const handleRemoveOpcaoEsquema = (idx) => {
+    setEditOpcoesEsquema((prev) => prev.filter((_, i) => i !== idx))
+  }
+
+  const handleChangeOpcaoEsquema = (idx, val) => {
+    setEditOpcoesEsquema((prev) => prev.map((item, i) => (i === idx ? val : item)))
+  }
 
   const fetchTarifas = useCallback(async () => {
     setLoading(true)
@@ -145,6 +170,13 @@ export default function ConfiguracoesTarifasPage() {
         // ok if null
       }
     }
+    if (config.tipo === 'ESQUEMA') {
+      const opcoes = (tarifa?.opcoesValores && tarifa.opcoesValores.length > 0)
+        ? tarifa.opcoesValores.map(String)
+        : ['30', '50']
+      setEditOpcoesEsquema(opcoes)
+    }
+
     const existingValores = tarifa?.valoresPorPessoa || {}
 
     // Find highest configured person count or use default 5
@@ -170,6 +202,45 @@ export default function ConfiguracoesTarifasPage() {
       return toast.error('Configuração de tarifa inválida.')
     }
 
+    if (editModalData.config.tipo === 'ESQUEMA') {
+      const cleanOpcoes = editOpcoesEsquema
+        .map((v) => parseFloat(String(v).replace(',', '.')))
+        .filter((v) => !isNaN(v) && v > 0)
+
+      if (cleanOpcoes.length === 0) {
+        return toast.error('Informe pelo menos uma opção de valor para o Esquema (ex: R$ 30,00).')
+      }
+
+      setSaving(true)
+      try {
+        const currentTarifa = editModalData.tarifa || findTarifa(editModalData.predio.key, editModalData.config.tipo)
+        const tarifaId = currentTarifa?.id || 0
+
+        await tarifasService.atualizar(tarifaId || 'salvar', {
+          id: tarifaId,
+          tipo: 'ESQUEMA',
+          predio: 'CENTRAL',
+          nome: `${editModalData.predio.label} - ${editModalData.config.label}`,
+          opcoesValores: cleanOpcoes,
+          valorPorPessoa: cleanOpcoes[0] || 30
+        })
+
+        toast.success('Opções de valores do Esquema salvas com sucesso!')
+        setEditModalData(null)
+        fetchTarifas()
+      } catch (err) {
+        toast.error(
+          err?.response?.data?.error ||
+          err?.response?.data?.message ||
+          err?.message ||
+          'Erro ao salvar opções do Esquema.'
+        )
+      } finally {
+        setSaving(false)
+      }
+      return
+    }
+
     const cleanValores = {}
     Object.entries(editValores).forEach(([num, rawVal]) => {
       if (rawVal !== undefined && rawVal !== null && String(rawVal).trim() !== '') {
@@ -181,7 +252,11 @@ export default function ConfiguracoesTarifasPage() {
     })
 
     if (!cleanValores['1']) {
-      return toast.error('Informe pelo menos o valor da diária para 1 pessoa.')
+      return toast.error(
+        editModalData.config.tipo === 'ESQUEMA'
+          ? 'Informe pelo menos o valor para 1 pessoa no Esquema.'
+          : 'Informe pelo menos o valor da diária para 1 pessoa.'
+      )
     }
 
     setSaving(true)
@@ -294,7 +369,7 @@ export default function ConfiguracoesTarifasPage() {
             {(() => {
               const configs = predio.key === 'ANEXO' ? TARIFA_CONFIG_ANEXO : TARIFA_CONFIG_HOTEL
               return (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className={`grid grid-cols-1 ${predio.key === 'CENTRAL' ? 'md:grid-cols-2 lg:grid-cols-3' : 'md:grid-cols-2'} gap-5`}>
                   {configs.map((config) => {
                     const tarifa = findTarifa(predio.key, config.tipo)
                     const valores = tarifa?.valoresPorPessoa || {}
@@ -343,6 +418,32 @@ export default function ConfiguracoesTarifasPage() {
                           {/* Values Preview Box */}
                           {loading ? (
                             <div className="skeleton h-16 rounded-xl" />
+                          ) : config.tipo === 'ESQUEMA' ? (
+                            <div className="bg-amber-50/60 rounded-xl p-3 border border-amber-200/70 space-y-2">
+                              <div className="flex items-center justify-between text-xs text-amber-900 font-semibold">
+                                <span>Valores fixos disponíveis</span>
+                                <span className="text-[10px] text-amber-700 bg-amber-100/80 px-1.5 py-0.5 rounded">por descanso</span>
+                              </div>
+                              <div className="flex flex-wrap gap-1.5">
+                                {((tarifa?.opcoesValores && tarifa.opcoesValores.length > 0)
+                                  ? tarifa.opcoesValores
+                                  : [30, 50]
+                                ).map((val, i) => (
+                                  <span
+                                    key={i}
+                                    className="inline-flex items-center text-xs font-bold text-amber-900 bg-amber-100 border border-amber-300 px-2.5 py-0.5 rounded-lg shadow-2xs"
+                                  >
+                                    {formatCurrency(val)}
+                                  </span>
+                                ))}
+                              </div>
+                              <div className="pt-1 border-t border-amber-200/60 flex items-center justify-between text-[11px] text-amber-800">
+                                <span>Valor fixo por descanso</span>
+                                <span className="text-amber-700 font-medium group-hover:underline">
+                                  Configurar opções
+                                </span>
+                              </div>
+                            </div>
                           ) : (
                             <div className="bg-gray-50 rounded-xl p-3 border border-gray-100 space-y-1.5">
                               {hasValues ? (
@@ -453,6 +554,51 @@ export default function ConfiguracoesTarifasPage() {
             .filter((n) => !isNaN(n) && valores[String(n)] > 0)
             .sort((a, b) => a - b)
 
+          if (config.tipo === 'ESQUEMA') {
+            const opcoes = (tarifa?.opcoesValores && tarifa.opcoesValores.length > 0)
+              ? tarifa.opcoesValores
+              : [30, 50]
+
+            return (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 p-3 bg-amber-50 rounded-xl border border-amber-200">
+                  <div className={`p-2.5 rounded-xl ${config.iconBg}`}>
+                    <config.icon size={22} className={config.iconColor} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-gray-800 text-sm">
+                      {predio.label} — {config.label}
+                    </h4>
+                    <p className="text-xs text-amber-800">
+                      Valores fixos por período de descanso (independente de quantidade de pessoas).
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <span className="text-xs font-bold text-gray-700 uppercase tracking-wide block">
+                    Opções de valores disponíveis ({opcoes.length})
+                  </span>
+                  <div className="grid grid-cols-2 gap-3">
+                    {opcoes.map((val, idx) => (
+                      <div
+                        key={idx}
+                        className="p-3.5 bg-gray-50 rounded-xl border border-gray-200 flex items-center justify-between shadow-2xs"
+                      >
+                        <span className="text-xs text-gray-500 font-medium">Opção #{idx + 1}</span>
+                        <span className="text-base font-bold text-amber-800">{formatCurrency(val)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-gray-500 bg-amber-50 border border-amber-200 rounded-lg p-2.5 leading-relaxed">
+                  ⚡ Na criação de uma nova hospedagem, a recepção escolhe uma dessas opções de valor fixo para aplicar ao descanso rápido.
+                </p>
+              </div>
+            )
+          }
+
           return (
             <div className="space-y-4">
               <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
@@ -539,60 +685,50 @@ export default function ConfiguracoesTarifasPage() {
         }
       >
         {editModalData && (
-          <div className="space-y-4">
-            {/* Header info */}
-            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
-              <div className={`p-2.5 rounded-xl ${editModalData.config.iconBg}`}>
-                <editModalData.config.icon size={22} className={editModalData.config.iconColor} />
+          editModalData.config.tipo === 'ESQUEMA' ? (
+            <div className="space-y-4">
+              {/* Header info */}
+              <div className="flex items-center gap-3 p-3 bg-amber-50 rounded-xl border border-amber-200">
+                <div className={`p-2.5 rounded-xl ${editModalData.config.iconBg}`}>
+                  <editModalData.config.icon size={22} className={editModalData.config.iconColor} />
+                </div>
+                <div>
+                  <h4 className="font-bold text-gray-800 text-sm">
+                    {editModalData.predio.label} — {editModalData.config.label}
+                  </h4>
+                  <p className="text-xs text-amber-800">
+                    Valores fixos por descanso (não é cobrado por pessoa).
+                  </p>
+                </div>
               </div>
-              <div>
-                <h4 className="font-bold text-gray-800 text-sm">
-                  {editModalData.predio.label} — {editModalData.config.label}
-                </h4>
-                <p className="text-xs text-gray-500">
-                  Defina o valor da diária para cada quantidade de pessoas no quarto.
+
+              {/* Hint */}
+              <div className="bg-amber-50/70 border border-amber-200 rounded-xl p-3 text-xs text-amber-900 flex items-start gap-2">
+                <Zap size={18} className="text-amber-600 flex-shrink-0 mt-0.5" />
+                <p className="leading-relaxed">
+                  <strong>Valor fixo por descanso:</strong> O Esquema não é cobrado por pessoa. Defina abaixo as opções de valores disponíveis (ex: R$ 30,00 e R$ 50,00). Você pode adicionar quantas opções desejar.
                 </p>
               </div>
-            </div>
 
-            {/* Hint */}
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-900 flex items-start gap-2">
-              <span className="text-base">💡</span>
-              <p className="leading-relaxed">
-                <strong>Regra de Precificação:</strong> Os valores não precisam dobrar (exemplo: 1 pessoa = R$ 70,00 e 2 pessoas = R$ 100,00). Preencha o valor total da diária correspondente a cada quantidade de hóspedes.
-              </p>
-            </div>
-
-            {/* Inputs list */}
-            <div className="max-h-[50vh] overflow-y-auto pr-1 space-y-3">
-              {Array.from({ length: maxPessoas }, (_, idx) => {
-                const num = idx + 1
-                const key = String(num)
-                const currentVal = editValores[key] ?? ''
-                const numVal = parseFloat(String(currentVal).replace(',', '.'))
-                const isValid = !isNaN(numVal) && numVal > 0
-                const porPessoa = isValid ? numVal / num : 0
-
-                return (
-                  <div
-                    key={num}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-white border border-gray-200 rounded-xl hover:border-primary-300 transition-colors"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-[130px]">
-                      <span className="w-7 h-7 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center font-bold text-xs">
-                        {num}
-                      </span>
-                      <div>
-                        <span className="text-xs font-bold text-gray-800 block">
-                          {num} {num === 1 ? 'Pessoa' : 'Pessoas'}
+              {/* Options list */}
+              <div className="space-y-2.5 max-h-[50vh] overflow-y-auto pr-1">
+                {editOpcoesEsquema.map((val, idx) => {
+                  const numVal = parseFloat(String(val).replace(',', '.'))
+                  const isValid = !isNaN(numVal) && numVal > 0
+                  return (
+                    <div
+                      key={idx}
+                      className="flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-xl hover:border-amber-300 transition-colors"
+                    >
+                      <div className="flex items-center gap-2 min-w-[100px]">
+                        <span className="w-6 h-6 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center font-bold text-xs">
+                          #{idx + 1}
                         </span>
-                        <span className="text-[10px] text-gray-400">
-                          {num === 1 ? 'Ocupação individual' : `Até ${num} hóspedes`}
+                        <span className="text-xs font-bold text-gray-700">
+                          Opção {idx + 1}
                         </span>
                       </div>
-                    </div>
 
-                    <div className="flex-1 flex items-center gap-3">
                       <div className="relative flex-1">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-semibold">
                           R$
@@ -602,45 +738,156 @@ export default function ConfiguracoesTarifasPage() {
                           min="0"
                           step="0.01"
                           className="form-input pl-9 text-sm"
-                          placeholder={num === 1 ? 'Ex: 70,00' : num === 2 ? 'Ex: 100,00' : 'Ex: 130,00'}
-                          value={currentVal}
-                          onChange={(e) =>
-                            setEditValores((prev) => ({ ...prev, [key]: e.target.value }))
-                          }
+                          placeholder={idx === 0 ? '30,00' : idx === 1 ? '50,00' : 'Novo valor'}
+                          value={val}
+                          onChange={(e) => handleChangeOpcaoEsquema(idx, e.target.value)}
                           disabled={saving}
                         />
                       </div>
 
-                      <div className="min-w-[140px] text-right">
+                      <div className="min-w-[100px] text-right">
                         {isValid ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">
-                            <CheckCircle2 size={12} />
-                            {formatCurrency(porPessoa)} / pessoa
+                          <span className="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-1 rounded-lg">
+                            {formatCurrency(numVal)}
                           </span>
                         ) : (
-                          <span className="text-[11px] text-gray-400 italic">
-                            Não configurado
-                          </span>
+                          <span className="text-[11px] text-gray-400 italic">Vazio</span>
                         )}
                       </div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
 
-            {/* Button to add more people */}
-            <div className="flex justify-center pt-1">
-              <button
-                type="button"
-                onClick={() => setMaxPessoas((prev) => prev + 1)}
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary-700 hover:text-primary-800 bg-primary-50 hover:bg-primary-100 px-3.5 py-2 rounded-xl transition-all"
-              >
-                <Plus size={14} />
-                Adicionar mais pessoas ({maxPessoas + 1} pessoas)
-              </button>
+                      {editOpcoesEsquema.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveOpcaoEsquema(idx)}
+                          className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Remover esta opção"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Button to add more options */}
+              <div className="pt-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  icon={Plus}
+                  onClick={handleAddOpcaoEsquema}
+                  className="w-full border-2 border-dashed border-amber-300 text-amber-800 hover:bg-amber-50 py-2.5 font-semibold"
+                >
+                  Adicionar nova opção de valor
+                </Button>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Header info */}
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                <div className={`p-2.5 rounded-xl ${editModalData.config.iconBg}`}>
+                  <editModalData.config.icon size={22} className={editModalData.config.iconColor} />
+                </div>
+                <div>
+                  <h4 className="font-bold text-gray-800 text-sm">
+                    {editModalData.predio.label} — {editModalData.config.label}
+                  </h4>
+                  <p className="text-xs text-gray-500">
+                    Defina o valor da diária para cada quantidade de pessoas no quarto.
+                  </p>
+                </div>
+              </div>
+
+              {/* Hint */}
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-900 flex items-start gap-2">
+                <span className="text-base">💡</span>
+                <p className="leading-relaxed">
+                  <strong>Regra de Precificação:</strong> Os valores não precisam dobrar (exemplo: 1 pessoa = R$ 70,00 e 2 pessoas = R$ 100,00). Preencha o valor total da diária correspondente a cada quantidade de hóspedes.
+                </p>
+              </div>
+
+              {/* Inputs list */}
+              <div className="max-h-[50vh] overflow-y-auto pr-1 space-y-3">
+                {Array.from({ length: maxPessoas }, (_, idx) => {
+                  const num = idx + 1
+                  const key = String(num)
+                  const currentVal = editValores[key] ?? ''
+                  const numVal = parseFloat(String(currentVal).replace(',', '.'))
+                  const isValid = !isNaN(numVal) && numVal > 0
+                  const porPessoa = isValid ? numVal / num : 0
+
+                  return (
+                    <div
+                      key={num}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-white border border-gray-200 rounded-xl hover:border-primary-300 transition-colors"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-[130px]">
+                        <span className="w-7 h-7 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center font-bold text-xs">
+                          {num}
+                        </span>
+                        <div>
+                          <span className="text-xs font-bold text-gray-800 block">
+                            {num} {num === 1 ? 'Pessoa' : 'Pessoas'}
+                          </span>
+                          <span className="text-[10px] text-gray-400">
+                            {num === 1 ? 'Ocupação individual' : `Até ${num} hóspedes`}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex-1 flex items-center gap-3">
+                        <div className="relative flex-1">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-semibold">
+                            R$
+                          </span>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            className="form-input pl-9 text-sm"
+                            placeholder={num === 1 ? 'Ex: 70,00' : num === 2 ? 'Ex: 100,00' : 'Ex: 130,00'}
+                            value={currentVal}
+                            onChange={(e) =>
+                              setEditValores((prev) => ({ ...prev, [key]: e.target.value }))
+                            }
+                            disabled={saving}
+                          />
+                        </div>
+
+                        <div className="min-w-[140px] text-right">
+                          {isValid ? (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">
+                              <CheckCircle2 size={12} />
+                              {formatCurrency(porPessoa)} / pessoa
+                            </span>
+                          ) : (
+                            <span className="text-[11px] text-gray-400 italic">
+                              Não configurado
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Button to add more people */}
+              <div className="flex justify-center pt-1">
+                <button
+                  type="button"
+                  onClick={() => setMaxPessoas((prev) => prev + 1)}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary-700 hover:text-primary-800 bg-primary-50 hover:bg-primary-100 px-3.5 py-2 rounded-xl transition-all"
+                >
+                  <Plus size={14} />
+                  Adicionar mais pessoas ({maxPessoas + 1} pessoas)
+                </button>
+              </div>
+            </div>
+          )
         )}
       </Modal>
 

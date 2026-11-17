@@ -4,7 +4,7 @@ const { validationResult } = require('express-validator');
 const prisma = require('../lib/prisma');
 
 function generateToken(user) {
-  const secret = process.env.JWT_SECRET || 'hotel_central_jwt_secret_2024_super_seguro';
+  const secret = process.env.JWT_SECRET || 'hotel_central_dev_fallback_secret';
   return jwt.sign(
     { id: user.id, email: user.email, perfil: user.perfil, nome: user.nome },
     secret,

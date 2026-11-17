@@ -193,8 +193,8 @@ export default function HospedagemDetalhePage() {
             <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${hosp.quarto?.predio === 'ANEXO' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
               {hosp.quarto?.predio === 'ANEXO' ? 'Anexo' : 'Hotel'}
             </span>
-            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
-              {hosp.tipo === 'SUITE_PREMIUM' ? '👑 Suíte Premium' : (hosp.tipo === 'COMPLETO' ? 'Quarto Completo' : (hosp.temArCondicionado ? 'Simples (Com Ar)' : 'Simples (Sem Ar)'))}
+            <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${hosp.tipo === 'ESQUEMA' ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-emerald-100 text-emerald-800 border border-emerald-200'}`}>
+              {hosp.tipo === 'ESQUEMA' ? '⚡ Esquema (Descanso Rápido)' : (hosp.tipo === 'SUITE_PREMIUM' ? '👑 Suíte Premium' : (hosp.tipo === 'COMPLETO' ? 'Quarto Completo' : (hosp.temArCondicionado ? 'Simples (Com Ar)' : 'Simples (Sem Ar)')))}
             </span>
             <Badge color={statusColorMap[hosp.status] || 'gray'} className="text-sm px-3 py-1">
               {statusLabelMap[hosp.status] || hosp.status}

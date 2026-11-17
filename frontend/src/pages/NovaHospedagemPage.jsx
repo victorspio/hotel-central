@@ -25,6 +25,7 @@ const tipoLabel = {
 }
 
 function getAcomodacaoDisplay(tipo, temAr) {
+  if (tipo === 'ESQUEMA') return '⚡ Esquema (Descanso Rápido)'
   if (tipo === 'SUITE_PREMIUM') return 'Suíte Premium'
   if (tipo === 'COMPLETO') return 'Quarto Completo'
   return 'Quarto Simples (Sem Ar)'
@@ -39,8 +40,8 @@ function StepIndicator({ current }) {
             <div className={[
               'w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm transition-all',
               current > step.num ? 'bg-green-500 text-white' :
-              current === step.num ? 'bg-primary-600 text-white ring-4 ring-primary-100' :
-              'bg-gray-200 text-gray-500'
+                current === step.num ? 'bg-primary-600 text-white ring-4 ring-primary-100' :
+                  'bg-gray-200 text-gray-500'
             ].join(' ')}>
               {current > step.num ? <Check size={16} /> : step.num}
             </div>
@@ -65,7 +66,8 @@ export default function NovaHospedagemPage() {
   const [step, setStep] = useState(1)
   const [selectedCliente, setSelectedCliente] = useState(null)
   const [selectedQuarto, setSelectedQuarto] = useState(null)
-  const [tipoAcomodacao, setTipoAcomodacao] = useState('SIMPLES') // 'SIMPLES' | 'COMPLETO'
+  const [tipoAcomodacao, setTipoAcomodacao] = useState('SIMPLES') // 'SIMPLES' | 'COMPLETO' | 'ESQUEMA'
+  const [valorEsquema, setValorEsquema] = useState(30)
   const [temArCondicionado, setTemArCondicionado] = useState(false)
   const [tarifas, setTarifas] = useState([])
   const [form, setForm] = useState({
@@ -79,7 +81,7 @@ export default function NovaHospedagemPage() {
   useEffect(() => {
     tarifasService.listar()
       .then((res) => setTarifas(res.data?.data || res.data || []))
-      .catch(() => {})
+      .catch(() => { })
   }, [])
 
   // Step 1 — client search
@@ -94,7 +96,7 @@ export default function NovaHospedagemPage() {
     try {
       const res = await clientesApi.list({ search: q, limit: 8 })
       setClienteResults(res.data.data || res.data.clientes || [])
-    } catch {}
+    } catch { }
     finally { setSearchingCliente(false) }
   }, [])
 
@@ -135,11 +137,12 @@ export default function NovaHospedagemPage() {
   })
 
   const estimatedDias = (() => {
+    if (tipoAcomodacao === 'ESQUEMA') return 1
     if (!form.dataEntrada || !form.previsaoSaida) return 0
     const a = new Date(form.dataEntrada)
     const b = new Date(form.previsaoSaida)
     const d = Math.round((b - a) / 86400000)
-    return d > 0 ? d : 0
+    return d > 0 ? d : 1
   })()
 
   const selectedPredio = selectedQuarto?.predio || 'CENTRAL'
@@ -147,21 +150,38 @@ export default function NovaHospedagemPage() {
 
   const tipoTarifaKey = isAnexo
     ? (tipoAcomodacao === 'SUITE_PREMIUM' ? 'SUITE_PREMIUM' : 'COMPLETO')
-    : (tipoAcomodacao === 'COMPLETO' ? 'COMPLETO' : 'SIMPLES_SEM_AR')
+    : (tipoAcomodacao === 'ESQUEMA' ? 'ESQUEMA' : (tipoAcomodacao === 'COMPLETO' ? 'COMPLETO' : 'SIMPLES_SEM_AR'))
 
   const tarifaQuarto = tarifas.find(
     (t) => (t.predio || 'CENTRAL') === selectedPredio && t.tipo === tipoTarifaKey
   )
+
+  const tarifaEsquema = tarifas.find(
+    (t) => (t.predio || 'CENTRAL') === 'CENTRAL' && t.tipo === 'ESQUEMA'
+  )
+  const opcoesEsquema = (tarifaEsquema?.opcoesValores && tarifaEsquema.opcoesValores.length > 0)
+    ? tarifaEsquema.opcoesValores
+    : [30, 50]
+
+  useEffect(() => {
+    if (opcoesEsquema.length > 0 && (!valorEsquema || !opcoesEsquema.includes(Number(valorEsquema)))) {
+      setValorEsquema(opcoesEsquema[0])
+    }
+  }, [tarifaEsquema])
+
   const numHospedes = parseInt(form.numHospedes) || 1
 
   const diariaTotal = (() => {
+    if (tipoAcomodacao === 'ESQUEMA') {
+      return Number(valorEsquema) || (opcoesEsquema[0] || 30)
+    }
     if (!tarifaQuarto) return 0
     let valores = tarifaQuarto.valoresPorPessoa
     if (!valores && tarifaQuarto.descricao) {
       try {
         const p = JSON.parse(tarifaQuarto.descricao)
         valores = p?.valoresPorPessoa || p
-      } catch {}
+      } catch { }
     }
     if (valores && valores[String(numHospedes)] && Number(valores[String(numHospedes)]) > 0) {
       return Number(valores[String(numHospedes)])
@@ -177,8 +197,8 @@ export default function NovaHospedagemPage() {
     return (tarifaQuarto.valorPorPessoa || 0) * numHospedes
   })()
 
-  const valorPorPessoa = diariaTotal / numHospedes
-  const estimatedTotal = selectedQuarto ? estimatedDias * diariaTotal : 0
+  const valorPorPessoa = tipoAcomodacao === 'ESQUEMA' ? diariaTotal : diariaTotal / numHospedes
+  const estimatedTotal = selectedQuarto ? (tipoAcomodacao === 'ESQUEMA' ? diariaTotal : estimatedDias * diariaTotal) : 0
 
   const handleSubmit = async () => {
     if (!selectedCliente) return toast.error('Selecione um cliente.')
@@ -196,6 +216,7 @@ export default function NovaHospedagemPage() {
         numHospedes: parseInt(form.numHospedes),
         tipo: tipoAcomodacao,
         tipoTarifa: tipoTarifaKey,
+        valorDiaria: tipoAcomodacao === 'ESQUEMA' ? diariaTotal : undefined,
         temArCondicionado: false,
         observacoes: form.observacoes
       })
@@ -403,7 +424,7 @@ export default function NovaHospedagemPage() {
                   {isAnexo ? 'Opções disponíveis para o Anexo:' : 'Opções disponíveis para o Hotel:'}
                 </p>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className={isAnexo ? 'grid grid-cols-2 gap-3' : 'grid grid-cols-1 sm:grid-cols-3 gap-3'}>
                 {isAnexo ? (
                   <>
                     <button
@@ -475,10 +496,70 @@ export default function NovaHospedagemPage() {
                       </div>
                       <p className="text-xs text-gray-500 mt-1">Com ar condicionado no Hotel</p>
                     </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTipoAcomodacao('ESQUEMA')
+                        if (!form.previsaoSaida) {
+                          setForm((f) => ({ ...f, previsaoSaida: f.dataEntrada }))
+                        }
+                      }}
+                      className={[
+                        'p-3 rounded-xl border text-left transition-all',
+                        tipoAcomodacao === 'ESQUEMA'
+                          ? 'border-amber-500 bg-amber-50 ring-2 ring-amber-200 text-amber-900 font-semibold'
+                          : 'border-gray-200 hover:border-gray-300 bg-white text-gray-700'
+                      ].join(' ')}
+                    >
+                      <div className="text-sm font-bold flex items-center justify-between">
+                        <span>⚡ Esquema</span>
+                        {tipoAcomodacao === 'ESQUEMA' && <span className="text-xs text-amber-600 font-bold">✓</span>}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">Descanso rápido no Hotel</p>
+                    </button>
                   </>
                 )}
               </div>
             </div>
+
+            {/* Seletor de opções de valor fixo do Esquema */}
+            {tipoAcomodacao === 'ESQUEMA' && (
+              <div className="bg-amber-50/80 border border-amber-200 rounded-xl p-3.5 space-y-2.5 animate-fade-in">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                    <span>⚡</span> Escolha o valor do Esquema:
+                  </span>
+                  <span className="text-[11px] text-amber-700 font-medium">
+                    Valor fixo pelo descanso
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2.5">
+                  {opcoesEsquema.map((opc) => {
+                    const isSelected = Number(valorEsquema) === Number(opc)
+                    return (
+                      <button
+                        key={opc}
+                        type="button"
+                        onClick={() => setValorEsquema(opc)}
+                        className={[
+                          'px-4 py-2.5 rounded-xl border text-sm font-bold transition-all flex items-center gap-2',
+                          isSelected
+                            ? 'bg-amber-500 text-white border-amber-600 shadow-sm ring-2 ring-amber-300'
+                            : 'bg-white text-gray-700 border-gray-200 hover:border-amber-300 hover:bg-amber-50/50'
+                        ].join(' ')}
+                      >
+                        <span>{formatCurrency(opc)}</span>
+                        {isSelected && <span className="text-xs font-bold">✓</span>}
+                      </button>
+                    )
+                  })}
+                </div>
+                <p className="text-[11px] text-gray-500">
+                  * Valor fixo para todo o descanso rápido, independente de quantas pessoas estejam no quarto.
+                </p>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-4">
               <DatePicker
@@ -538,9 +619,9 @@ export default function NovaHospedagemPage() {
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Valor da diária</span>
+                  <span className="text-gray-500">{tipoAcomodacao === 'ESQUEMA' ? 'Valor do descanso' : 'Valor da diária'}</span>
                   <span className="font-medium">
-                    {formatCurrency(diariaTotal)} / diária
+                    {formatCurrency(diariaTotal)} {tipoAcomodacao === 'ESQUEMA' ? '/ descanso' : '/ diária'}
                     {numHospedes > 1 && (
                       <span className="text-xs text-gray-500 font-normal ml-1">
                         ({formatCurrency(valorPorPessoa)} / pessoa)
@@ -553,15 +634,25 @@ export default function NovaHospedagemPage() {
                   <span className="font-medium">{numHospedes} pessoa(s)</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Período</span>
-                  <span className="font-medium">{estimatedDias} diária(s)</span>
+                  <span className="text-gray-500">{tipoAcomodacao === 'ESQUEMA' ? 'Modalidade' : 'Período'}</span>
+                  <span className="font-medium">
+                    {tipoAcomodacao === 'ESQUEMA' ? 'Descanso rápido (Esquema)' : `${estimatedDias} diária(s)`}
+                  </span>
                 </div>
                 <div className="border-t border-gray-200 pt-2 flex justify-between items-baseline">
                   <div>
-                    <span className="font-semibold text-gray-800 block">Total estimado</span>
-                    <span className="text-[11px] text-gray-400">({estimatedDias} diárias × {formatCurrency(diariaTotal)})</span>
+                    <span className="font-semibold text-gray-800 block">
+                      {tipoAcomodacao === 'ESQUEMA' ? 'Total do Esquema' : 'Total estimado'}
+                    </span>
+                    <span className="text-[11px] text-gray-400">
+                      {tipoAcomodacao === 'ESQUEMA'
+                        ? `Descanso rápido (${numHospedes} pessoa${numHospedes > 1 ? 's' : ''})`
+                        : `(${estimatedDias} diárias × ${formatCurrency(diariaTotal)})`}
+                    </span>
                   </div>
-                  <span className="font-bold text-primary-700 text-lg">{formatCurrency(estimatedTotal)}</span>
+                  <span className="font-bold text-primary-700 text-lg">
+                    {formatCurrency(tipoAcomodacao === 'ESQUEMA' ? diariaTotal : estimatedTotal)}
+                  </span>
                 </div>
               </div>
             )}
