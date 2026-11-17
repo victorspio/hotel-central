@@ -115,6 +115,9 @@ export default function QuartosPage() {
     if (!form.numero) return toast.error('Número do quarto é obrigatório.')
     if (!form.capacidade) return toast.error('Informe a capacidade máxima de pessoas.')
     if (!form.andar) return toast.error('Informe o andar do quarto.')
+    if (editItem?.status === 'OCUPADO' && form.status !== 'OCUPADO') {
+      return toast.error('Não é permitido alterar o status de um quarto ocupado sem antes realizar o check-out.')
+    }
     setSaving(true)
     try {
       const payload = {
@@ -135,7 +138,7 @@ export default function QuartosPage() {
       setModalOpen(false)
       fetchList(pagination.page)
     } catch (err) {
-      toast.error(err?.response?.data?.message || 'Erro ao salvar quarto.')
+      toast.error(err?.response?.data?.error || err?.response?.data?.message || 'Erro ao salvar quarto.')
     } finally {
       setSaving(false)
     }
@@ -249,7 +252,14 @@ export default function QuartosPage() {
           <Input label="Capacidade (pessoas)" type="number" min="1" value={form.capacidade} onChange={onChange('capacidade')} placeholder="Ex: 2" />
           <Input label="Andar" type="number" min="1" value={form.andar} onChange={onChange('andar')} placeholder="Ex: 1" />
           <div className="col-span-2">
-            <Select label="Status" options={statusOptions} value={form.status} onChange={onChange('status')} />
+            <Select
+              label="Status"
+              options={statusOptions}
+              value={form.status}
+              disabled={editItem?.status === 'OCUPADO'}
+              helper={editItem?.status === 'OCUPADO' ? 'Quarto com hospedagem ativa. Para alterar o status, realize o check-out.' : undefined}
+              onChange={onChange('status')}
+            />
           </div>
           <div className="col-span-2">
             <Input label="Descrição" value={form.descricao} onChange={onChange('descricao')} placeholder="Ex: Quarto com vista para a rua..." />

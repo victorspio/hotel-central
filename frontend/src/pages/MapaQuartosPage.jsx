@@ -107,13 +107,18 @@ export default function MapaQuartosPage() {
   }
 
   const handleStatusChange = async (roomId, newStatus) => {
+    const room = rooms.find((r) => r.id === roomId)
+    if (room?.status === 'OCUPADO' && newStatus !== 'OCUPADO') {
+      toast.error('Quarto ocupado: realize o check-out antes de alterar o status!')
+      return
+    }
     setChangingStatus(roomId)
     try {
-      await hospedagens.updateQuartoStatus(roomId, newStatus)
+      await quartos.updateStatus(roomId, newStatus)
       setRooms((prev) => prev.map((r) => r.id === roomId ? { ...r, status: newStatus } : r))
       toast.success('Status atualizado!')
-    } catch {
-      toast.error('Erro ao atualizar status.')
+    } catch (err) {
+      toast.error(err?.response?.data?.error || err?.response?.data?.message || 'Erro ao atualizar status.')
     } finally {
       setChangingStatus(null)
     }
@@ -313,9 +318,14 @@ export default function MapaQuartosPage() {
                       <div className="mt-2" onClick={(e) => e.stopPropagation()}>
                         <select
                           value={room.status}
-                          disabled={changingStatus === room.id}
+                          disabled={changingStatus === room.id || room.status === 'OCUPADO'}
                           onChange={(e) => handleStatusChange(room.id, e.target.value)}
-                          className="w-full text-xs rounded border border-gray-200 px-1.5 py-1 bg-white/80 focus:outline-none cursor-pointer"
+                          className={`w-full text-xs rounded border border-gray-200 px-1.5 py-1 ${
+                            room.status === 'OCUPADO'
+                              ? 'bg-red-50 text-red-700 cursor-not-allowed font-medium'
+                              : 'bg-white/80 cursor-pointer'
+                          } focus:outline-none`}
+                          title={room.status === 'OCUPADO' ? 'Quarto ocupado: realize o check-out para alterar o status' : 'Alterar status'}
                         >
                           <option value="LIVRE">Livre</option>
                           <option value="OCUPADO">Ocupado</option>
@@ -389,9 +399,14 @@ export default function MapaQuartosPage() {
                       <div className="mt-2" onClick={(e) => e.stopPropagation()}>
                         <select
                           value={room.status}
-                          disabled={changingStatus === room.id}
+                          disabled={changingStatus === room.id || room.status === 'OCUPADO'}
                           onChange={(e) => handleStatusChange(room.id, e.target.value)}
-                          className="w-full text-xs rounded border border-gray-200 px-1.5 py-1 bg-white/80 focus:outline-none cursor-pointer"
+                          className={`w-full text-xs rounded border border-gray-200 px-1.5 py-1 ${
+                            room.status === 'OCUPADO'
+                              ? 'bg-red-50 text-red-700 cursor-not-allowed font-medium'
+                              : 'bg-white/80 cursor-pointer'
+                          } focus:outline-none`}
+                          title={room.status === 'OCUPADO' ? 'Quarto ocupado: realize o check-out para alterar o status' : 'Alterar status'}
                         >
                           <option value="LIVRE">Livre</option>
                           <option value="OCUPADO">Ocupado</option>

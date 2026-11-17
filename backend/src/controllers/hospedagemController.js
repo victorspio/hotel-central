@@ -262,12 +262,14 @@ const checkout = async (req, res, next) => {
     }
 
     const dataSaida = new Date();
+    let dias = 1;
     let totalDiarias;
     if (hospedagem.tipo === 'ESQUEMA') {
       const diariaTotal = hospedagem.valorDiariaPessoa || 30;
       totalDiarias = diariaTotal;
+      dias = 1;
     } else {
-      const dias = Math.max(1, Math.ceil((dataSaida - hospedagem.dataEntrada) / 86400000));
+      dias = Math.max(1, Math.ceil((dataSaida - hospedagem.dataEntrada) / 86400000));
       const tipoTarifa = hospedagem.tipoTarifa || getTipoTarifa(hospedagem.quarto);
       const predio = hospedagem.quarto?.predio || 'CENTRAL';
       const tarifa = await prisma.tarifaQuarto.findFirst({ where: { tipo: tipoTarifa, predio } });
@@ -393,8 +395,23 @@ const alterarStatusQuarto = async (req, res, next) => {
       return res.status(400).json({ error: `Status inválido. Use: ${STATUS_VALIDOS.join(', ')}` });
     }
 
-    const quarto = await prisma.quarto.findUnique({ where: { id: Number(quartoId) } });
+    const quarto = await prisma.quarto.findUnique({
+      where: { id: Number(quartoId) },
+      include: {
+        hospedagens: {
+          where: { status: 'ATIVA' },
+          take: 1,
+        },
+      },
+    });
     if (!quarto) return res.status(404).json({ error: 'Quarto não encontrado' });
+
+    // Bloqueia alteração manual de status se o quarto estiver ocupado ou tiver hospedagem ativa
+    if ((quarto.status === 'OCUPADO' || quarto.hospedagens.length > 0) && status !== 'OCUPADO') {
+      return res.status(400).json({
+        error: 'Não é permitido alterar o status de um quarto ocupado. Realize o check-out da hospedagem primeiro.',
+      });
+    }
 
     const updated = await prisma.quarto.update({
       where: { id: Number(quartoId) },

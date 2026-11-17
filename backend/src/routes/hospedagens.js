@@ -26,7 +26,8 @@ router.post('/:id/consumos', authorize('ADMIN', 'RECEPCIONISTA'), hospedagemCont
 // DELETE /api/hospedagens/:id/consumos/:consumoId
 router.delete('/:id/consumos/:consumoId', authorize('ADMIN', 'RECEPCIONISTA'), hospedagemController.removerConsumo);
 
-// PUT /api/hospedagens/quartos/:quartoId/status
+// PUT & PATCH /api/hospedagens/quartos/:quartoId/status
 router.put('/quartos/:quartoId/status', authorize('ADMIN', 'RECEPCIONISTA'), hospedagemController.alterarStatusQuarto);
+router.patch('/quartos/:quartoId/status', authorize('ADMIN', 'RECEPCIONISTA'), hospedagemController.alterarStatusQuarto);
 
 module.exports = router;

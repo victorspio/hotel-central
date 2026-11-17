@@ -126,13 +126,28 @@ const atualizar = async (req, res, next) => {
     const { id } = req.params;
     const { numero, predio, capacidade, andar, status, descricao } = req.body;
 
-    const quarto = await prisma.quarto.findUnique({ where: { id: Number(id) } });
+    const quarto = await prisma.quarto.findUnique({
+      where: { id: Number(id) },
+      include: {
+        hospedagens: {
+          where: { status: 'ATIVA' },
+          take: 1,
+        },
+      },
+    });
     if (!quarto) {
       return res.status(404).json({ error: 'Quarto não encontrado' });
     }
 
     if (status && !STATUS_VALIDOS.includes(status)) {
       return res.status(400).json({ error: `Status inválido. Use: ${STATUS_VALIDOS.join(', ')}` });
+    }
+
+    // Bloqueia alteração manual de status se o quarto estiver ocupado ou com hospedagem ativa
+    if (status && (quarto.status === 'OCUPADO' || quarto.hospedagens.length > 0) && status !== 'OCUPADO') {
+      return res.status(400).json({
+        error: 'Não é permitido alterar o status de um quarto ocupado sem antes realizar o check-out.',
+      });
     }
 
     const predioDestino = predio ? ((['CENTRAL', 'ANEXO'].includes(predio.toUpperCase())) ? predio.toUpperCase() : quarto.predio) : quarto.predio;

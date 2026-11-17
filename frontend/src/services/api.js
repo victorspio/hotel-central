@@ -56,6 +56,7 @@ export const quartos = {
   getOne: (id) => api.get(`/quartos/${id}`),
   create: (data) => api.post('/quartos', data),
   update: (id, data) => api.put(`/quartos/${id}`, data),
+  updateStatus: (id, status) => api.patch(`/quartos/${id}/status`, { status }),
   remove: (id) => api.delete(`/quartos/${id}`)
 }
 
